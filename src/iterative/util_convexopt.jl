@@ -1,5 +1,3 @@
-# Copyright (c) Jakeoung Koo
-
 module util_convexopt
 
 export LinOp, compute_opnorm, proj_dual_iso!

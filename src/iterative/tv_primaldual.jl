@@ -1,4 +1,4 @@
-using .util_convexopt
+import .util_convexopt
 
 @doc raw"""
 Solve u
@@ -65,11 +65,10 @@ w_tv: weight for TV term
 c : See 61 page in 2016_Chambolle,Pock_An_introduction_to_continuous_optimization_for_imagingActa_Numerica
 
 """
-function recon2d_tv_primaldual(A, b::Array{R, 1},
-    u0::Array{R, 2}, niter::Int, w_tv::R, c=1.0) where {R <: AbstractFloat}
+function recon2d_tv_primaldual(u0::Array{T, 2}, A, b0::Array{T, 2}, niter::Int, w_tv::T, c=1.0) where {T <: AbstractFloat}
 
-    ops = [A, D]
-    @time op_A_norm = compute_opnorm(A)
+    ops = [A, util_convexopt.D]
+    @time op_A_norm = util_convexopt.compute_opnorm(A)
     println("@ opnorm of forward projection operator: $op_A_norm")
     ops_norm = [op_A_norm, sqrt(8)]
     
@@ -79,7 +78,6 @@ function recon2d_tv_primaldual(A, b::Array{R, 1},
     end
 
     tau = c / sum(ops_norm)
-
     println("@ step sizes sigmas: ", sigmas, ", tau: $tau")
     
     return _recon2d_tv_primaldual(ops, b, u0, niter, w_tv, sigmas, tau)

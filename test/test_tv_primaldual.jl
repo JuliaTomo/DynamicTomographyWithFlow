@@ -27,14 +27,14 @@ u0 = zeros(size(img))
 niter=800
 lambdas = [0.01, 0.1, 0.6]
 u = zeros(H, W, 5)
-u[:,:,1] = recon2d_tv_primaldual(A, p, u0, niter, lambdas[3], 0.01)
-u[:,:,2] = recon2d_tv_primaldual(A, p, u0, niter, lambdas[3], 10)
+u[:,:,1] = recon2d_tv_primaldual(u0, A, p, niter, lambdas[3], 0.01)
+u[:,:,2] = recon2d_tv_primaldual(u0, A, p, niter, lambdas[3], 10)
 
 for (i,lamb) in enumerate(lambdas)
     w_tv=lamb
     c=1.0
 
-    u[:,:,i+2] = recon2d_tv_primaldual(A, p, u0, niter, w_tv, c)
+    u[:,:,i+2] = recon2d_tv_primaldual(u0, A, p, niter, w_tv, c)
 end
 
 ax00 = plt.subplot2grid((2,3), (0,0))
