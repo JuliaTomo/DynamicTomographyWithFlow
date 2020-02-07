@@ -4,7 +4,7 @@ using XfromProjections
 # include("../src/iterative/util_convexopt.jl")
 # include("../src/iterative/tv_primaldual.jl")
 
-# using MKLSparse # uncomment if you've installed MKLSparse, which will boost the performance
+# using MKLSparse # uncomment if you've installed MKLSparse, it will boost the performance
 
 # test slice by slice
 img = zeros(128, 128, 128)
