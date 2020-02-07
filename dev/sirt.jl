@@ -1,3 +1,8 @@
+using TomoForward
+using SparseArrays
+using LinearAlgebra
+using MKLSparse
+
 function _compute_sum_rows_cols(A)
     R_mx1 = spzeros(size(A, 1))
     C_nx1 = spzeros(size(A, 2))
@@ -126,3 +131,30 @@ function recon2d_slices_sirt!(u::Array{T, 3}, A::SparseMatrixCSC{T,Int}, b_::Arr
     println("@ reconstruction done. min: $(minimum(u)), max: $(maximum(u))")
     return u
 end
+
+# test slice by slice
+img = zeros(128, 128, 128)
+img[40:70, 40:60, 50:70] .= 1.0
+
+nslice = size(img, 3)
+
+nangles = 90
+detcount = Int(floor(size(img,1)*1.4))
+proj_geom = ProjGeom(1.0, detcount, LinRange(0,pi,nangles+1)[1:nangles])
+
+isdefined_A = @isdefined A
+if isdefined_A == false
+    A = fp_op_parallel2d_strip(proj_geom, size(img, 1), size(img, 2))
+end
+
+p = zeros(nangles, nslice, detcount)
+for i=1:nslice
+    p[:,i,:] = reshape(A * vec(img[:,:,i]), nangles, detcount)
+end
+
+u = zeros(size(img))
+@time recon2d_slices_sirt!(u, A, p, 20);
+a=1
+
+# using PyPlot
+# imshow(u[:,:,60])

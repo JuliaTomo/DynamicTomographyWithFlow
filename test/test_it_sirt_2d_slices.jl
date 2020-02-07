@@ -12,9 +12,9 @@ proj_geom = ProjGeom(1.0, detcount, LinRange(0,pi,nangles+1)[1:nangles])
 A = fp_op_parallel2d_strip(proj_geom, size(img, 1), size(img, 2))
 p = reshape(A * vec(img), nangles, detcount)
 
-u0 = zeros(size(img))
+u = zeros(size(img))
 niter=300
-@time u = recon2d_sirt(A, p, u0, niter)
+@time u = recon2d_sirt!(u, A, p, niter)
 
 # using PyPlot
 # imshow(u, cmap="gray")
