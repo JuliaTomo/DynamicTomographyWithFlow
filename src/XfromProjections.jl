@@ -14,9 +14,8 @@ include("iterative/sirt.jl")
 export recon2d_tv_primaldual
 export recon2d_sirt!, recon2d_slices_sirt!, _compute_sum_rows_cols
 
-# edges
-
-include("edge_from_proj.jl")
-export radon_log
+# misc
+include("misc/edge_from_proj.jl")
+export radon_log, radon_filter
 
 end
