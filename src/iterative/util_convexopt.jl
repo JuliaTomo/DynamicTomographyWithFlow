@@ -1,6 +1,6 @@
 module util_convexopt
 
-export LinOp, compute_opnorm, proj_dual_iso!
+export LinOp, compute_opnorm, proj_l1!, grad!, div!
 
 # See http://www.ima.umn.edu/materials/2019-2020/SW10.14-18.19/28302/talk.pdf
 struct LinOp
@@ -49,23 +49,70 @@ function grad(u::Array{T, 2}) where {T<:AbstractFloat}
     return cat(ux, uy, dims=3)
 end
 
-function grad(u::Array{T, 3}) where {T<:AbstractFloat}
-    ux = circshift(u, [0, -1, 0]) - u
-    uy = circshift(u, [-1, 0, 0]) - u
-    uz = circshift(u, [0, 0, -1]) - u
-    ux[:, end,   :] .= 0.0
-    uy[end, :,   :] .= 0.0
-    uz[:,   :, end] .= 0.0
-    
-    return cat(ux, uy, uz, dims=3)
+function grad!(du::Array{T, 3}, u::Array{T, 2}) where {T<:AbstractFloat}
+    du1, du2 = view(du, :, :, 1), view(du, :, :, 2)
+    du1 .= circshift!(du1, u, [0, -1]) .- u
+    du2 .= circshift!(du2, u, [-1, 0]) .- u
+    du1[:, end] .= 0.0
+    du2[end, :] .= 0.0
 end
 
+function grad!(du::Array{T, 4}, u::Array{T, 3}) where {T<:AbstractFloat}
+    du1, du2, du3 = view(du,:,:,:,1), view(du,:,:,:,2), view(du,:,:,:,3)
+    circshift!(du1, u, [0, -1, 0])
+    du1 .= circshift!(du1, u, [0, -1, 0]) .- u
+    du2 .= circshift!(du2, u, [-1, 0, 0]) .- u
+    du3 .= circshift!(du3, u, [0, 0, -1]) .- u
+    du1[:, end, :] .= 0.0
+    du2[end, :, :] .= 0.0
+    du3[:, :, end] .= 0.0
+end
+
+
 function div(p::Array{T, 3}) where {T<:AbstractFloat}
-    if size(p, 3) == 2
-        return div2d(p[:,:,1], p[:,:,2])
-    elseif size(p, 3) == 3
-        return div3d(p[:,:,1], p[:,:,2], p[:,:,3])
-    end
+    return div2d(view(p,:,:,1), view(p,:,:,2))
+end
+
+function div!(divp::Array{T, 4}, p::Array{T, 4}) where {T<:AbstractFloat}
+    p1, p2, p3 = view(p,:,:,:,1), view(p,:,:,:,2), view(p,:,:,:,3)
+    p1_x, p2_y, p3_z = view(divp,:,:,:,1), view(divp,:,:,:,2), view(divp,:,:,:,3)
+
+    # p3_z temp variable to save memory
+    p1_x .= p1 .- circshift!(p3_z, p1, [0, 1, 0])
+    p1_x[:, end, :] .= -p1[:, end-1, :]
+    p1_x[:,   1, :] .=  p1[:, 1, :]
+    
+    p2_y .= p2 .- circshift!(p3_z, p2, [1, 0, 0])
+    p2_y[end, :, :] .= -p2[end-1, :, :]
+    p2_y[1,   :, :] .=  p2[1, :, :]
+
+    p1_x .+= p2_y
+
+    # p2_y: temporary variable to save memory
+    p3_z .= p3 .- circshift!(p2_y, p3, [0, 0, 1])
+    p3_z[:, :, end] .= -p3[:, :, end-1]
+    p3_z[:, :,   1] .=  p3[:, :, 1]
+
+    p1_x .+= p3_z
+    return p1_x
+end
+
+function div!(divp::Array{T, 3}, p::Array{T, 3}) where {T<:AbstractFloat}
+    p1, p2 = view(p,:,:,1), view(p,:,:,2)
+    p1_x, p2_y = view(divp,:,:,1), view(divp,:,:,2)
+    
+    # p2_y is temp variable to save memory
+    p1_x         .=  p1 - circshift!(p2_y, p1, [0, 1])
+    p1_x[:, end] .= -p1[:, end-1]
+    p1_x[:,   1] .=  p1[:, 1]
+    
+    circshift!(p2_y, p2, [1, 0])
+    p2_y         .= p2 - p2_y
+    p2_y[end, :] .= -p2[end-1, :]
+    p2_y[1,   :] .=  p2[1, :]
+    
+    p1_x .+= p2_y
+    return p1_x
 end
 
 "Compute backward divergence dim:[height, width]"
@@ -82,35 +129,45 @@ function div2d(p1, p2)
     return div_p
 end
 
-"Compute backward divergence dim:[height, width, slice]"
-function div3d(p1, p2, p3)
-    p1_x         =  p1 - circshift(p1, [0, 1, 0])
-    p1_x[:, end, :] .= -p1[:, end-1, :]
-    p1_x[:,   1, :] .=  p1[:, 1, :]
+# "Compute backward divergence dim:[height, width, slice]"
+# function div3d(p1, p2, p3)
+#     p1_x =  p1 - circshift(p1, [0, 1, 0])
+#     p1_x[:, end, :] .= -p1[:, end-1, :]
+#     p1_x[:,   1, :] .=  p1[:, 1, :]
     
-    p2_y = p2 - circshift(p2, [1, 0, 0])
-    p2_y[end, :, :] .= -p2[end-1, :, :]
-    p2_y[1,   :, :] .=  p2[1, :, :]
+#     p2_y = p2 - circshift(p2, [1, 0, 0])
+#     p2_y[end, :, :] .= -p2[end-1, :, :]
+#     p2_y[1,   :, :] .=  p2[1, :, :]
 
-    p3_z = p3 - circshift(p3, [0, 0, 1])
-    p3_z[end, :, :] .= -p3[:, :, end-1]
-    p3_z[1,   :, :] .=  p3[:, :, 1]
-    
-    div_p = p1_x + p2_y
-    return div_p
-end
+#     p3_z = p3 - circshift(p3, [0, 0, 1])
+#     p3_z[:, :, end] .= -p3[:, :, end-1]
+#     p3_z[:, :,   1] .=  p3[:, :, 1]
+         
+#     return p1_x + p2_y + p3_z
+# end
 
 "Project p[H,W,2] to dual isonorm"
-function proj_dual_iso!(p, weight)
-    norms = sqrt.(p[:,:,1].^2 + p[:,:,2].^2)
-    p[:,:,1] ./= max.(1.0, norms ./ (weight+1e-8))
-    p[:,:,2] ./= max.(1.0, norms ./ (weight+1e-8))
+function proj_dual_iso!(p::Array{T, 3}, weight) where {T<:AbstractFloat}
+    "TODO: Avoid copying"
+    p1, p2 = view(p,:,:,1), view(p,:,:,2)
+    norms = sqrt.( p1 .^2 + p2 .^ 2 )
+    p1 ./= max.(1.0, norms ./ (weight+1e-8))
+    p2 ./= max.(1.0, norms ./ (weight+1e-8))
 end
 
-"Project l1 norm"
-function proj_l1(x, weight)
-    return sign(x) .* max.(abs.(x), 0.0)
+"Project p[H,W,Z,3] to dual isonorm"
+function proj_dual_iso!(p::Array{T, 4}, weight) where {T<:AbstractFloat}
+    "TODO: Avoid copying"
+    p1, p2, p3 = view(p,:,:,:,1), view(p,:,:,:,2), view(p,:,:,:,3)
+    norms .= sqrt.( p1 .^2 + p2 .^2 + p3 .^2 )
+    p1 ./= max.(1.0, norms ./ (weight+1e-8))
+    p2 ./= max.(1.0, norms ./ (weight+1e-8))
+    p3 ./= max.(1.0, norms ./ (weight+1e-8))
 end
 
+"Project l1 norm (soft thresholding)"
+function proj_l1!(x::AbstractArray{T}, weight::T) where {T<:AbstractFloat}
+    x .= sign.(x) .* max.(abs.(x) .- weight, 0.0)
+end
 
 end
