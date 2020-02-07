@@ -63,40 +63,37 @@ function filter_proj(p; filter_type="ramlak")
     return pimg_ifft / 2.0; # for matching with the original
 end
 
+"Filter projections slice by slice where p: [nangles x H x W]"
 function filter_proj_slices(p; filter_type="ramlak")
-    function filter_proj_3d(p; filter_type="ramlak", do_zaxis=false)
-        # See Kak ch3 (61)
-    
-        nangles, nz, detcount = size(p)
-        out = similar(p)
-        
-        # compute next power of 2
-        size_padded = Int(2^ceil(log(detcount)/log(2)))
-        fourier_filter = make_filter(size_padded, filter_type)
-        fourier_filter = reshape(fourier_filter, 1, length(fourier_filter))
-    
-        dpad = size_padded - detcount
-        println(dpad)
-    
-        p_padded = zeros(nangles, size_padded)
-        Threads.@threads for z=1:nz
-            # pad data
-            
-            fill!(p_padded, 0)
-            for i=1:nangles
-                p_padded[i, 1:detcount] = p[i, z, :]
-            end
-        
-            # filter projection in Fourier domain
-            proj = fft(p_padded, 2) .* fourier_filter
-    
-            pimg_fft = real(ifft(proj, 2)[:, 1:detcount])
-            out[:, z, :] = pimg_fft / 2.0
-        end
-        return out
-    end
-end
+    # See Kak ch3 (61)
 
+    nangles, nz, detcount = size(p)
+    out = similar(p)
+    
+    # compute next power of 2
+    size_padded = Int(2^ceil(log(detcount)/log(2)))
+    fourier_filter = make_filter(size_padded, filter_type)
+    fourier_filter = reshape(fourier_filter, 1, length(fourier_filter))
+
+    dpad = size_padded - detcount
+    println(dpad)
+
+    p_padded = zeros(nangles, size_padded)
+    Threads.@threads for z=1:nz
+        # pad data        
+        fill!(p_padded, 0)
+        for i=1:nangles
+            p_padded[i, 1:detcount] = p[i, z, :]
+        end
+    
+        # filter projection in Fourier domain
+        proj = fft(p_padded, 2) .* fourier_filter
+
+        pimg_fft = real(ifft(proj, 2)[:, 1:detcount])
+        out[:, z, :] = pimg_fft / 2.0
+    end
+    return out
+end
 
 # TODO
 """
