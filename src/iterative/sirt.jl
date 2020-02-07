@@ -25,11 +25,13 @@ niter: number of iterations
 
 u <- u + CA'R(b - Au)
 """
-function recon2d_sirt!(u0::Array{T, 2}, A::SparseMatrixCSC{T,Int}, b::Array{T, 2}, niter::Int; min_value=nothing, max_value=nothing) where {T <: AbstractFloat}
+function recon2d_sirt!(u0::Array{T, 2}, A::SparseMatrixCSC{T,Int}, b0::Array{T, 2}, niter::Int; min_value=nothing, max_value=nothing) where {T <: AbstractFloat}
     R_mx1, C_nx1 = _compute_sum_rows_cols(A)
-    r = similar(b)
+    
     At = sparse(A') # this significatnly improves the performance
     u = vec(u0)
+    b = vec(b0)
+    r = similar(b)
 
     for it = 1:niter
         # println("$it")
@@ -47,7 +49,6 @@ function recon2d_sirt!(u0::Array{T, 2}, A::SparseMatrixCSC{T,Int}, b::Array{T, 2
             println("$it l2 residual: $residual")
         end
     end
-    return reshape(u, size(u0))
 end
 
 

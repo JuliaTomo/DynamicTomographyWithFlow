@@ -13,8 +13,8 @@ A = fp_op_parallel2d_strip(proj_geom, size(img, 1), size(img, 2))
 p = reshape(A * vec(img), nangles, detcount)
 
 u = zeros(size(img))
-niter=300
-@time u = recon2d_sirt!(u, A, p, niter)
+niter=100
+@time recon2d_sirt!(u, A, p, niter)
 
 # using PyPlot
 # imshow(u, cmap="gray")
