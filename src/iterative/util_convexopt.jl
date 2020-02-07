@@ -129,23 +129,6 @@ function div2d(p1, p2)
     return div_p
 end
 
-# "Compute backward divergence dim:[height, width, slice]"
-# function div3d(p1, p2, p3)
-#     p1_x =  p1 - circshift(p1, [0, 1, 0])
-#     p1_x[:, end, :] .= -p1[:, end-1, :]
-#     p1_x[:,   1, :] .=  p1[:, 1, :]
-    
-#     p2_y = p2 - circshift(p2, [1, 0, 0])
-#     p2_y[end, :, :] .= -p2[end-1, :, :]
-#     p2_y[1,   :, :] .=  p2[1, :, :]
-
-#     p3_z = p3 - circshift(p3, [0, 0, 1])
-#     p3_z[:, :, end] .= -p3[:, :, end-1]
-#     p3_z[:, :,   1] .=  p3[:, :, 1]
-         
-#     return p1_x + p2_y + p3_z
-# end
-
 "Project p[H,W,2] to dual isonorm"
 function proj_dual_iso!(p::Array{T, 3}, weight) where {T<:AbstractFloat}
     "TODO: Avoid copying"

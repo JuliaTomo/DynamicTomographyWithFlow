@@ -1,13 +1,5 @@
 using .util_convexopt
 
-@doc raw"""
-Solve u
-
-ops[1]: A
-ops[2]: TV
-
-argmin_u \|ops[1]*u - b\|_2^2 + w_tv TV(u)
-"""
 function _recon2d_tv_primaldual!(u, A, b0, niter, w_tv, sigmas, tau)
     At = sparse(A')
     H, W = size(u)
@@ -59,18 +51,17 @@ function _recon2d_tv_primaldual!(u, A, b0, niter, w_tv, sigmas, tau)
 end
 
 """
-    recon2d_tv_primaldual(A, b, u0, niter, w_tv, c=1.0)
+    recon2d_tv_primaldual!(u::Array{T, 2}, A, b::Array{T, 2}, niter::Int, w_tv::T, c=1.0)
 
-Reconstruct a 2d image by total variation model using Primal Dual optimization method
+Reconstruct a 2d image by TV-L2 model using Primal Dual optimization method
 
 # Args
-u: Initial guess of image
+u : Initial guess of image
 A : Forward opeartor
 b : Projection data 
 niter: number of iterations
 w_tv: weight for TV term
 c : See 61 page in 2016_Chambolle,Pock_An_introduction_to_continuous_optimization_for_imagingActa_Numerica
-
 """
 function recon2d_tv_primaldual!(u::Array{T, 2}, A, b::Array{T, 2}, niter::Int, w_tv::T, c=1.0) where {T <: AbstractFloat}
     @time op_A_norm = util_convexopt.compute_opnorm(A)
@@ -133,8 +124,6 @@ function _recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, nite
         # util_convexopt.proj_dual_iso!(p2, w_tv)
         util_convexopt.proj_l1!(p2, w_tv) # anisotropic TV
 
-        println("p_adjoint", maximum(p_adjoint), " max p2", maximum(p2))
-
         # if p_adjoint .++ -view(), memory allocation increases. WHY??
         p_adjoint .-= div!(divu, p2)
 
@@ -153,6 +142,19 @@ function _recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, nite
     return u
 end
 
+"""
+    recon2d_tv_primaldual!(u::Array{T, 2}, A, b::Array{T, 2}, niter::Int, w_tv::T, c=1.0)
+
+Reconstruct a 2d image by TV-L2 model using Primal Dual optimization method
+
+# Args
+u : Initial guess of 3d image
+A : Forward opeartor
+b : Projection data [nangles x detheight x detwidth]
+niter: number of iterations
+w_tv: weight for TV term
+c : See 61 page in 2016_Chambolle,Pock_An_introduction_to_continuous_optimization_for_imagingActa_Numerica
+"""
 function recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b::Array{T, 3}, niter::Int, w_tv::T, c=1.0) where {T <: AbstractFloat}
     @time op_A_norm = util_convexopt.compute_opnorm(A)
     println("@ opnorm of forward projection operator: $op_A_norm")
