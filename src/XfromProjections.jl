@@ -5,7 +5,7 @@ using LinearAlgebra
 
 # analytic 
 include("filter_proj.jl")
-export filter_proj, filter_proj_slices
+export filter_proj, filter_proj_slices, bp_slices
 
 # iterative
 include("iterative/util_convexopt.jl")

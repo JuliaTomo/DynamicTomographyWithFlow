@@ -1,54 +1,30 @@
 using TomoForward
 using XfromProjections
-using SparseArrays
-using PyPlot
 
-img = imread("test_data/shepplogan512.png")[:,:,1]
+# using MKLSparse # uncomment if you've installed MKLSparse, which will boost the performance
 
-# img = zeros(200, 200)
-# img[100:101, 100:101] .= 1
+# generate synthetic data
+img = zeros(128, 128, 128)
+img[40:70, 40:60, 50:70] .= 1.0
+H, W, nslice = size(img)
 
-nangles = 200
+nangles = 90
 detcount = Int(floor(size(img,1)*1.4))
 proj_geom = ProjGeom(1.0, detcount, LinRange(0,pi,nangles+1)[1:nangles])
 
-# test line projection model
-A = fp_op_parallel2d_line(proj_geom, size(img, 1), size(img, 2))
-@time p = A * vec(img);
-p = reshape(Array(p), (:, detcount));
-q = filter_proj(p)
+isdefined_A = @isdefined A
+if isdefined_A == false
+    A = fp_op_parallel2d_strip(proj_geom, size(img, 1), size(img, 2))
+end
 
-@time bp = A' * vec(p)
-fbp = A' * vec(q)
+p = zeros(nangles, nslice, detcount)
+for i=1:nslice
+    p[:,i,:] .= reshape(A * vec(img[:,:,i]), nangles, detcount)
+end
 
-fbp_img = reshape(fbp, size(img))
-#bp_img = reshape(bp, size(img))
+# fbp slice by slice
+q = filter_proj_slices(p)
+img3d = bp_slices(q, A, H, W)
 
-# test strip projection model
-A_strip = fp_op_parallel2d_strip(proj_geom, size(img, 1), size(img, 2))
-@time p = A_strip * vec(img);
-p = reshape(Array(p), (:, detcount));
-q = filter_proj(p)
-
-p_ = vec(p)
-q_ = vec(q)
-
-#bp_strip = A' * p_
-@time fbp_strip = A' * q_
-
-fbp_img_strip = reshape(fbp_strip, size(img))
-bp_img_strip = reshape(bp_strip, size(img))
-
-ax00 = plt.subplot2grid((2,3), (0,0))
-ax01 = plt.subplot2grid((2,3), (0,1))
-ax02 = plt.subplot2grid((2,3), (0,2))
-ax10 = plt.subplot2grid((2,3), (1,0))
-ax11 = plt.subplot2grid((2,3), (1,1))
-ax12 = plt.subplot2grid((2,3), (1,2))
-ax00.imshow(p); ax00.set_title("")
-#ax01.imshow(bp_img); ax01.set_title("bp")
-#ax02.imshow(bp_img_strip); ax02.set_title("bp_strip")
-ax10.imshow(img); ax10.set_title("")
-ax11.imshow(fbp_img); ax11.set_title("fbp")
-ax12.imshow(fbp_img_strip); ax12.set_title("fbp_strip")
-plt.show()
+# using PyPlot
+# imshow(img3d[:,:,60])

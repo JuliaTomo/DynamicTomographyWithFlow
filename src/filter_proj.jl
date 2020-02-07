@@ -76,8 +76,7 @@ function filter_proj_slices(p; filter_type="ramlak")
     fourier_filter = reshape(fourier_filter, 1, length(fourier_filter))
 
     dpad = size_padded - detcount
-    println(dpad)
-
+    
     p_padded = zeros(nangles, size_padded)
     Threads.@threads for z=1:nz
         # pad data        
@@ -94,6 +93,35 @@ function filter_proj_slices(p; filter_type="ramlak")
     end
     return out
 end
+
+"Perform backprojection slice by slice"
+function bp_slices(p_, A, H, W, scaling=true)
+    nangles, nslice, detcount = size(p_)
+    At = sparse(A')
+
+    nslice = size(p_, 2)
+    img = zeros(H*W, nslice)
+    pn = (pi / nangles)
+    # temp = zeros(H*W)
+    
+    p_axWxH = permutedims(p_, [1, 3, 2])
+    p = reshape(p_axWxH, :, nslice)
+
+    Threads.@threads for slice=1:nslice
+        println("$slice")
+        img_slice = view(img, :, slice)
+        pslice = view(p, :, slice)
+        mul!(img_slice, At, pslice)
+    end
+
+    # scale for FBP
+    if scaling
+        img .*= pn
+    end
+    img = reshape(img, H, W, nslice)
+    return img
+end
+
 
 # TODO
 """
