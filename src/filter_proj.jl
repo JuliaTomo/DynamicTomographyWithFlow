@@ -116,7 +116,6 @@ function bp_slices(p_, A, H, W, scaling=true)
     p = reshape(p_axWxH, :, nslice)
 
     Threads.@threads for slice=1:nslice
-        println("$slice")
         img_slice = view(img, :, slice)
         pslice = view(p, :, slice)
         mul!(img_slice, At, pslice)
