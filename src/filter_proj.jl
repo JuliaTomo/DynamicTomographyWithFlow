@@ -35,10 +35,6 @@ end
 
 Filter projections p by a given filter type (p: [detcount x nangles])
 
-Test eq ``E=mc^2``
-
-``\frac{n!}{k!(n - k)!} = \binom{n}{k}``
-
 supported filter_type:
 ramlak, shepplogan, hamming, hann
 """
@@ -65,7 +61,11 @@ function filter_proj(p::Array{T, 2}, filter_type="ramlak") where {T<:AbstractFlo
     return pimg_ifft / 2.0; # for matching with the original
 end
 
-"Filter projections slice by slice where p: [nangles x H x W]"
+"""
+    function filter_proj(p::Array{T, 3}, filter_type="ramlak") where {T<:AbstractFloat}
+
+Filter projections slice by slice where p: [nangles x H x W]
+"""
 function filter_proj(p::Array{T, 3}, filter_type="ramlak") where {T<:AbstractFloat}
     # See Kak ch3 (61)
 
@@ -96,7 +96,11 @@ function filter_proj(p::Array{T, 3}, filter_type="ramlak") where {T<:AbstractFlo
     return out
 end
 
-"Perform backprojection slice by slice"
+"""
+    bp_slices(p_, A, H, W, scaling=true)
+
+Perform backprojection slice by slice bp_slices(p_, A, H, W, scaling=true)
+"""
 function bp_slices(p_, A, H, W, scaling=true)
     nangles, nslice, detcount = size(p_)
     At = sparse(A')
