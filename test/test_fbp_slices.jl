@@ -23,7 +23,7 @@ for i=1:nslice
 end
 
 # fbp slice by slice
-q = filter_proj_slices(p)
+q = filter_proj(p)
 img3d = bp_slices(q, A, H, W)
 
 # using PyPlot

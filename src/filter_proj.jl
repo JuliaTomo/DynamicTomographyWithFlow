@@ -42,7 +42,7 @@ Test eq ``E=mc^2``
 supported filter_type:
 ramlak, shepplogan, hamming, hann
 """
-function filter_proj(p; filter_type="ramlak")
+function filter_proj(p::Array{T, 2}, filter_type="ramlak") where {T<:AbstractFloat}
     # See Kak ch3 (61)
 
     nangles, detcount = size(p)
@@ -66,7 +66,7 @@ function filter_proj(p; filter_type="ramlak")
 end
 
 "Filter projections slice by slice where p: [nangles x H x W]"
-function filter_proj_slices(p; filter_type="ramlak")
+function filter_proj(p::Array{T, 3}, filter_type="ramlak") where {T<:AbstractFloat}
     # See Kak ch3 (61)
 
     nangles, nz, detcount = size(p)
