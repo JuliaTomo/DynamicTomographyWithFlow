@@ -45,9 +45,13 @@ function radon_log(q, sigma; z0=0)
     return p_log
 end
 
-"Radon transform of a filter slice by slice specified by a 1D fucntion `fun_filter`"
+"""
+    radon_filter(p, angles, halfsz, fun_filter)
+
+Radon transform of a filter slice by slice specified by a 1D fucntion `fun_filter`
+"""
 function radon_filter(p, angles, halfsz, fun_filter)
-    nangles, nslice, detcount = size(q)
+    nangles, nslice, detcount = size(p)
     p_filtered = similar(p)
     
     kernel=zeros(2*halfsz+1)
@@ -57,7 +61,7 @@ function radon_filter(p, angles, halfsz, fun_filter)
     Threads.@threads for slice=1:nslice
         for ang=1:nangles
             kernel .= fun_filter.(tt, angles[ang])
-            p_conv = _conv_kern_direct(q[ang, slice, :], kernel, detcount, length(kernel))
+            p_conv = _conv_kern_direct(p[ang, slice, :], kernel, detcount, length(kernel))
             
             out[ang, slice, :] .= p_conv[halfsz+1:end-halfsz]
         end
