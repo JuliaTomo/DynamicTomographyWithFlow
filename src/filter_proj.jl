@@ -99,7 +99,10 @@ end
 """
     bp_slices(p_, A, H, W, scaling=true)
 
-Perform backprojection slice by slice bp_slices(p_, A, H, W, scaling=true)
+Perform backprojection slice by slice
+# Args
+- p_ [nangles x nslices x detcount]
+- A : forward operator
 """
 function bp_slices(p_, A, H, W, scaling=true)
     nangles, nslice, detcount = size(p_)
@@ -107,7 +110,6 @@ function bp_slices(p_, A, H, W, scaling=true)
 
     nslice = size(p_, 2)
     img = zeros(H*W, nslice)
-    pn = (pi / nangles)
     # temp = zeros(H*W)
     
     p_axWxH = permutedims(p_, [1, 3, 2])
@@ -122,7 +124,7 @@ function bp_slices(p_, A, H, W, scaling=true)
 
     # scale for FBP
     if scaling
-        img .*= pn
+        img .*= (pi / nangles)
     end
     img = reshape(img, H, W, nslice)
     return img
