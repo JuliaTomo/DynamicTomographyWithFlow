@@ -7,7 +7,7 @@ result
 !.gitignore
 !.gitmodules
 !.trash
-!.DS_Store
+.DS_Store
 *.mem
 
 ## C
