@@ -1,7 +1,3 @@
-"""
-Special thanks to the following repository
-"""
-
 using DSP
 using FFTW
 
