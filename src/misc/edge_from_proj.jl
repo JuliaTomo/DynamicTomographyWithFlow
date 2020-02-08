@@ -13,13 +13,13 @@ function _conv_kern_direct!(out, u, v)
     return out
 end
 
-function _conv_kern_direct(
-    u::AbstractArray{T, N}, v::AbstractArray{S, N}, su, sv) where {T, S, N}
-    sout = su .+ sv .- 1
-    out = similar(u, promote_type(T, S), sout)
-    _conv_kern_direct!(out, u, v)
-    return out
-end
+# function _conv_kern_direct(
+#     u::AbstractArray{T, N}, v::AbstractArray{S, N}, su, sv) where {T, S, N}
+#     sout = su .+ sv .- 1
+#     out = similar(u, promote_type(T, S), sout)
+#     _conv_kern_direct!(out, u, v)
+#     return out
+# end
 
 "radon transform of LoG"
 # $$e_{\sigma}(t)=\left(\frac{1}{\sqrt{2 \pi} \sigma^{5}}\right)\left(t^{2}-\sigma^{2}\right) \exp ^{-t^{2} / 2 \sigma^{2}}$$
@@ -57,11 +57,12 @@ function radon_filter(p, angles, halfsz, fun_filter)
     kernel=zeros(2*halfsz+1)
     tt = -halfsz:1:halfsz
     out = similar(p)
+    p_conv = zeros(2*halfsz+1 + detcount -1)
     
     Threads.@threads for slice=1:nslice
         for ang=1:nangles
             kernel .= fun_filter.(tt, angles[ang])
-            p_conv = _conv_kern_direct(p[ang, slice, :], kernel, detcount, length(kernel))
+            _conv_kern_direct!(p_conv, p[ang, slice, :], kernel)
             
             out[ang, slice, :] .= p_conv[halfsz+1:end-halfsz]
         end
