@@ -6,10 +6,12 @@ function make_filter(sz, filter_type="ramlak")
     # See Kak Chapter3 (61)
     
     tau = cat(Array(1:2:Int(sz/2-1)), Array(Int(sz/2-1):-2:0), dims=1);
+
+    # note that the filter is already shifted
     spatial_filter = zeros(sz)
     spatial_filter[1] = 0.25
     spatial_filter[2:2:end] .= -1.0 ./ (pi * tau).^2
-    
+
     fourier_filter = 2 * real(fft(spatial_filter))
     
     if filter_type == "shepplogan"
