@@ -109,14 +109,14 @@ function bp_slices(p_, A, H, W, scaling=true)
     At = sparse(A')
 
     nslice = size(p_, 2)
-    img = zeros(H*W, nslice)
+    img = zeros(H, W, nslice)
     # temp = zeros(H*W)
     
     p_axWxH = permutedims(p_, [1, 3, 2])
     p = reshape(p_axWxH, :, nslice)
 
     Threads.@threads for slice=1:nslice
-        img_slice = view(img, :, slice)
+        img_slice = vec(view(img, :, :, slice))
         pslice = view(p, :, slice)
         mul!(img_slice, At, pslice)
     end
@@ -125,7 +125,6 @@ function bp_slices(p_, A, H, W, scaling=true)
     if scaling
         img .*= (pi / nangles)
     end
-    img = reshape(img, H, W, nslice)
     return img
 end
 
