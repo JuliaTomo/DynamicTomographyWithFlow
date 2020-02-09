@@ -79,7 +79,8 @@ function recon2d_gridrec(p::Array{T, 3}, angles::Array{T, 1}) where {T<:Abstract
     UU0 = collect(1:sz_pad) .- offset
     one_index = CartesianIndex(1, 1)
     
-    for slice=1:2:nslices
+    Threads.@threads for slice=1:2:nslices
+        println("slice no. $slice")
         # (optional) add the current slice and the next slice
         # if slice < nslices-1
         #     p_pad[:,1:detcount] .= view(p,:,slice,:) + view(p,:,slice+1,:)
@@ -149,7 +150,7 @@ function recon2d_gridrec(p::Array{T, 3}, angles::Array{T, 1}) where {T<:Abstract
 end
 
 "Gridrec for 2D image"
-function recon2d_gridrec(p::Array{T, 2}, angles::Array{T}) where {T<:AbstractFloat}
+function recon2d_gridrec(p::Array{T, 2}, angles::Array{T, 1}) where {T<:AbstractFloat}
     p_3d_ = reshape(p, size(p)..., 1)
     p_3d = permutedims(p_3d_, 1, 3, 2)
     rec = recon2d_gridrec(p_3d, angles)
