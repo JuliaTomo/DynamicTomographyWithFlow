@@ -1,8 +1,6 @@
 using DSP
 using FFTW
 
-export make_freq_window, gridrec
-
 "Make window function in frequenVV domain with 3x3 size for crop=1."
 function make_freq_window(sz, crop=1; option1=3.0, window_type="kaiser")
     # Ref: https://github.com/miaosiSari/Regridding/blob/master/get_window.m
@@ -154,6 +152,6 @@ end
 function recon2d_gridrec(p::Array{T, 2}, angles::Array{T}) where {T<:AbstractFloat}
     p_3d_ = reshape(p, size(p)..., 1)
     p_3d = permutedims(p_3d_, 1, 3, 2)
-    rec = recon2d_slices_gridrec(p_3d, angles)
+    rec = recon2d_gridrec(p_3d, angles)
     return rec[:,:,1]
 end

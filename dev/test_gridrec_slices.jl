@@ -1,5 +1,7 @@
 # make a synthetic projection
+incldue("../src/analytic/gridrec.jl")
 using TomoForward
+
 img = zeros(128, 128, 2)
 img[10:80, 20:110, 1:2] .= 1.0
 
