@@ -49,31 +49,26 @@ function make_freq_window(sz, crop=1; option1=3.0, window_type="kaiser")
 end
 
 """
-    gridrec (p)
+    recon2d_gridrec(p::Array{T, 3}, angles::Array{T, 1}) where {T<:AbstractFloat}
 
-Reconstruct based on [1] gridrec from p [nanglesx x slices x detcount]
+Reconstruct based on [1] gridrec from p
+
+# Args
+- p [nangles x nslices x detcount] : (for the moment) detcount should be a power of 2
 
 [1] : Marone, F., Stampanoni, M., 2012. Regridding reconstruction algorithm
     for real-time tomographic imaging. Journal of Synchrotron Radiation
 """
-function recon2d_slices_gridrec(p::Array{T, 3}, angles::Array{T, 1}) where {T<:AbstractFloat}
+function recon2d_gridrec(p::Array{T, 3}, angles::Array{T, 1}) where {T<:AbstractFloat}
     nangles, nslices, detcount = size(p)
     
     if detcount % 2 != 0
         println("!TODO: Odd number of detector size can have problems for the moment.")
     end
     
-    # in [1], the author says that minimum padding should be detcount-1
-    # if Bool(detcount & 1)
-    #     padding = detcount - 1
-    # else
-    #     padding = detcount
-    # end
-
     #------------- step1 padding
     # we assume that detcount is a power of 2
     # pad 2 times
-
     sz_pad = Int(2^ceil(log(detcount+1)/log(2)))
     sz_half = sz_pad >> 1 # even number
     padding = sz_pad - detcount
@@ -169,7 +164,7 @@ function recon2d_slices_gridrec(p::Array{T, 3}, angles::Array{T, 1}) where {T<:A
         Q .*= dtheta / (detcount^2)
         q .= real( fftshift(ifft!(ifftshift(Q))) ./ kernel_spatial ) #./ kernel_weights )
         # q .*= size(Q, 2)
-        print(size(Q))
+        # print(size(Q))
         # q[q .< 0] .= 0
         # q[q .> 1] .= 1
 
@@ -179,8 +174,8 @@ function recon2d_slices_gridrec(p::Array{T, 3}, angles::Array{T, 1}) where {T<:A
     return rec_img
 end
 
-"Gridrec 2d"
-function recon2d_slices_gridrec(p::Array{T, 2}, angles::Array{T}) where {T<:AbstractFloat}
+"Gridrec for 2D image"
+function recon2d_gridrec(p::Array{T, 2}, angles::Array{T}) where {T<:AbstractFloat}
     p_3d_ = reshape(p, size(p)..., 1)
     p_3d = permutedims(p_3d_, 1, 3, 2)
     rec = recon2d_slices_gridrec(p_3d, angles)
@@ -195,7 +190,7 @@ img[10:80, 20:110, 1:2] .= 1.0
 nslice = size(img, 3)
 
 nangles = 90
-detcount = 256
+detcount = 196
 # detcount = Int(floor(size(img,1)*1.4))
 angles = Array(LinRange(0,pi,nangles+1)[1:nangles])
 proj_geom = ProjGeom(1.0, detcount, angles)
@@ -210,7 +205,7 @@ for i=1:nslice
     p[:,i,:] = reshape(A * vec(img[:,:,i]), nangles, detcount)
 end
 
-@time rec_img = recon2d_slices_gridrec(p, angles)
+@time rec_img = recon2d_gridrec(p, angles)
 
 using PyPlot
 imshow(rec_img[:,:,1])

@@ -4,8 +4,9 @@ using SparseArrays
 using LinearAlgebra
 
 # analytic 
-include("filter_proj.jl")
-export filter_proj, bp_slices
+include("analytic/filter_proj.jl")
+include("analytic/gridrec.jl")
+export filter_proj, bp_slices, recon2d_gridrec
 
 # iterative
 include("iterative/util_convexopt.jl")

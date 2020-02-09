@@ -27,8 +27,6 @@ pp = p[:, 1, :]
 pp_fft = fftshift( fft( ifftshift(pp, 2) ), 2 )
 # q = recon2d_slices_gridrec(p, angles)
 
-srcx = W/2 - 0.5 + cos()
-
 
 using PyPlot
 # using Plots
