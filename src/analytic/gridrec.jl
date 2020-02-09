@@ -3,30 +3,6 @@ using FFTW
 
 export make_freq_window, gridrec
 
-function _conv_kern_direct!(out, u, v)
-    "Need to refer the source"
-    fill!(out, 0)
-    u_region = CartesianIndices(u)
-    v_region = CartesianIndices(v)
-    one_index = oneunit(first(u_region))
-    sz2 = size(u, 2)
-    for vindex in v_region
-        @simd for uindex in u_region
-            @inbounds out[uindex + vindex - one_index] += u[uindex] * v[vindex]
-        end
-    end
-    return out
-end
-
-function _conv_kern_direct(
-    u::AbstractArray{T, N}, v::AbstractArray{S, N}, su, sv) where {T, S, N}
-    sout = su .+ sv .- 1
-    out = similar(u, promote_type(T, S), sout)
-    _conv_kern_direct!(out, u, v)
-    return out
-end
-
-
 "Make window function in frequenVV domain with 3x3 size for crop=1."
 function make_freq_window(sz, crop=1; option1=3.0, window_type="kaiser")
     # Ref: https://github.com/miaosiSari/Regridding/blob/master/get_window.m
