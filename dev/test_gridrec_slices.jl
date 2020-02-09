@@ -1,14 +1,12 @@
-using DSP
-using FFTW
 # make a synthetic projection
 using TomoForward
 img = zeros(128, 128, 2)
-H, W, nslice = size(img)
-img[10:70, 40:60, 1:2] .= 1.0
+img[10:80, 20:110, 1:2] .= 1.0
 
+nslice = size(img, 3)
 
 nangles = 90
-detcount = 128
+detcount = 196
 # detcount = Int(floor(size(img,1)*1.4))
 angles = Array(LinRange(0,pi,nangles+1)[1:nangles])
 proj_geom = ProjGeom(1.0, detcount, angles)
@@ -23,11 +21,8 @@ for i=1:nslice
     p[:,i,:] = reshape(A * vec(img[:,:,i]), nangles, detcount)
 end
 
-pp = p[:, 1, :]
-pp_fft = fftshift( fft( ifftshift(pp, 2) ), 2 )
-# q = recon2d_slices_gridrec(p, angles)
-
+@time rec_img = recon2d_gridrec(p, angles)
 
 using PyPlot
-# using Plots
-# plot(Gray.(q[:,:,:]))
+imshow(rec_img[:,:,1])
+# imshow(img[:,:,1])
