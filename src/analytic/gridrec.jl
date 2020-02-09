@@ -79,7 +79,7 @@ function recon2d_gridrec(p::Array{T, 3}, angles::Array{T, 1}) where {T<:Abstract
     UU0 = collect(1:sz_pad) .- offset
     one_index = CartesianIndex(1, 1)
     
-    Threads.@threads for slice=1:2:nslices
+    Threads.@threads for slice=1:nslices
         println("slice no. $slice")
         # (optional) add the current slice and the next slice
         # if slice < nslices-1

@@ -5,8 +5,9 @@ using LinearAlgebra
 
 # analytic 
 include("analytic/filter_proj.jl")
-include("analytic/gridrec.jl")
-export filter_proj, bp_slices, recon2d_gridrec
+export filter_proj, bp_slices
+# include("analytic/gridrec.jl")
+# export recon2d_gridrec
 
 # iterative
 include("iterative/util_convexopt.jl")
