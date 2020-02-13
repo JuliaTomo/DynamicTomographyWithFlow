@@ -4,7 +4,7 @@ using XfromProjections
 # using MKLSparse # uncomment if you've installed MKLSparse, which will boost the performance
 
 # test slice by slice
-img = zeros(128, 128, 128)
+img = zeros(100, 100, 128)
 img[40:70, 40:60, 50:70] .= 1.0
 
 nslice = size(img, 3)

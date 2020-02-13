@@ -37,14 +37,17 @@ function radon_filter(p::Array{T, 3}, angles::Array{T, 1}, fun_filter, szfilter:
     halfsz = div(szfilter-1, 2)    
     tt = collect(-halfsz:1:halfsz)
     out = zeros(size(p))
-
-    Threads.@threads for ang=1:nangles
-        filt_ = zeros(2*halfsz+1)
+    filt_ = zeros(2*halfsz+1)
+    
+    for ang=1:nangles
         filt_ .= fun_filter.(tt, angles[ang])
         for slice=1:nslice
             for i = 1:2*halfsz+1
-                @simd for j = halfsz+1:(detcount-2*halfsz)
-                    @inbounds out[ang, slice, i+j-1] += p[ang, slice, j] * filt_[i]
+                let i=i # needed for simd
+                    fi = filt_[i]
+                    @simd for j = halfsz+1:(detcount-halfsz)
+                        @inbounds out[ang, slice, i+j-(halfsz+1)] += p[ang, slice, j] * fi
+                    end
                 end
             end
         end

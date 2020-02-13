@@ -88,7 +88,7 @@ function _recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, nite
     ubar = deepcopy(u)
     u_prev = similar(u)
     
-    b_axWxH = permutedims(b0, [1, 3, 2])
+    b_axWxH = permutedims(b0, [1, 3, 2]) # PermutedDimsArray(A, (3,1,2));
     b = reshape(b_axWxH, :, nslice)
     
     halfslice = Int(floor(nslice/2))

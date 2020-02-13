@@ -31,7 +31,7 @@ function make_filter(sz, filter_type="ramlak")
 end
 
 @doc raw"""
-    function filter_proj_freq(p; filter_type)
+    function filter_proj(p, filter_type)
 
 Filter projections p by a given filter type (p: [detcount x nangles])
 
@@ -80,7 +80,7 @@ function filter_proj(p::Array{T, 3}, filter_type="ramlak") where {T<:AbstractFlo
     dpad = size_padded - detcount
     
     p_padded = zeros(nangles, size_padded)
-    Threads.@threads for z=1:nz
+    for z=1:nz
         # pad data        
         fill!(p_padded, 0)
         for i=1:nangles
@@ -91,7 +91,7 @@ function filter_proj(p::Array{T, 3}, filter_type="ramlak") where {T<:AbstractFlo
         proj = fft(p_padded, 2) .* fourier_filter
 
         pimg_fft = real(ifft(proj, 2)[:, 1:detcount])
-        out[:, z, :] = pimg_fft / 2.0
+        out[:, z, :] .= pimg_fft / 2.0
     end
     return out
 end
@@ -109,14 +109,14 @@ function bp_slices(p_, A, H, W, scaling=true)
     At = sparse(A')
 
     nslice = size(p_, 2)
-    img = zeros(H, W, nslice)
+    img = zeros(H*W, nslice)
     # temp = zeros(H*W)
     
     p_axWxH = permutedims(p_, [1, 3, 2])
     p = reshape(p_axWxH, :, nslice)
 
     Threads.@threads for slice=1:nslice
-        img_slice = vec(view(img, :, :, slice))
+        img_slice = view(img, :, slice)
         pslice = view(p, :, slice)
         mul!(img_slice, At, pslice)
     end
@@ -125,6 +125,7 @@ function bp_slices(p_, A, H, W, scaling=true)
     if scaling
         img .*= (pi / nangles)
     end
+    img = reshape(img, H, W, nslice)
     return img
 end
 
