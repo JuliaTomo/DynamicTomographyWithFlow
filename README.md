@@ -1,4 +1,4 @@
-Welcome to XfromProjections (under development)
+# Welcome to XfromProjections (under development)
 
 XfromProjections aims to provide solutions X from tomographic projection data. X can be images, edges (or ). Instead of providing a solver as a blackbox, we sometimes divide the function into multiple steps. For example, for filtered back-projection, the user should use filtering and back projection seperately. 
 
@@ -25,16 +25,16 @@ Please see codes in test folder.
 
 ### Analytic methods
 
-- FBP with different filters of Ram-Lak, Henning, Hann, Kaiser [Kak]
+- FBP with different filters of Ram-Lak, Henning, Hann, Kaiser
 
 ### Iterative methods
 
-- SIRT [3]
-- TV using primal dual (Chambolle-Pock) method [4]
+- SIRT [Andersen, Kak 1984]
+- TV using primal dual [Chambolle, Pock 2011] method [4]
 
 ## Edges from projections
 
-- Laplacian of Gaussian from projections [10]
+- Laplacian of Gaussian from projections [Srinivasa et al. 1992]
 
 ## Shape form Projections
 
@@ -48,7 +48,6 @@ Please see codes in test folder.
 
 # Reference
 
-- [1] https://astra-toolbox.com
-- [3] Andersen, A.H., Kak, A.C., 1984. Simultaneous Algebraic Reconstruction Technique (SART): A superior implementation of the ART algorithm. Ultrasonic Imaging 6. https://doi.org/10.1016/0161-7346(84)90008-7
-- [4] Chambolle, A., Pock, T., 2016. An introduction to continuous optimization for imaging. Acta Numerica 25, 161–319.
-- [10] Srinivasa, N., Ramakrishnan, K.R., Rajgopal, K., 1992. Detection of edges from projections. IEEE Transactions on Medical Imaging 11, 76–80. https://doi.org/10.1109/42.126913
+- Andersen, A.H., Kak, A.C., 1984. Simultaneous Algebraic Reconstruction Technique (SART): A superior implementation of the ART algorithm. Ultrasonic Imaging 6. https://doi.org/10.1016/0161-7346(84)90008-7
+- Chambolle, A., Pock, T., 2011. A First-Order Primal-Dual Algorithm for Convex Problems with Applications to Imaging. Journal of Mathematical Imaging and Vision 40, 120–145. https://doi.org/10.1007/s10851-010-0251-1
+- Srinivasa, N., Ramakrishnan, K.R., Rajgopal, K., 1992. Detection of edges from projections. IEEE Transactions on Medical Imaging 11, 76–80. https://doi.org/10.1109/42.126913

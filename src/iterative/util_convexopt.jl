@@ -130,27 +130,31 @@ function div2d(p1, p2)
 end
 
 "Project p[H,W,2] to dual isonorm"
-function proj_dual_iso!(p::Array{T, 3}, weight) where {T<:AbstractFloat}
+function proj_dual_iso!(p::Array{T, 3}, temp, weight) where {T<:AbstractFloat}
     "TODO: Avoid copying"
     p1, p2 = view(p,:,:,1), view(p,:,:,2)
-    norms = sqrt.( p1 .^2 + p2 .^ 2 )
-    p1 ./= max.(1.0, norms ./ (weight+1e-8))
-    p2 ./= max.(1.0, norms ./ (weight+1e-8))
+    temp .= 1 ./ max.(1.0, sqrt.( p1 .^2 + p2 .^ 2 ) ./ (weight+1e-8) )
+    p1 .*= temp
+    p2 .*= temp
 end
 
 "Project p[H,W,Z,3] to dual isonorm"
-function proj_dual_iso!(p::Array{T, 4}, weight) where {T<:AbstractFloat}
+function proj_dual_iso!(p::Array{T, 4}, temp, weight) where {T<:AbstractFloat}
     "TODO: Avoid copying"
     p1, p2, p3 = view(p,:,:,:,1), view(p,:,:,:,2), view(p,:,:,:,3)
-    norms .= sqrt.( p1 .^2 + p2 .^2 + p3 .^2 )
-    p1 ./= max.(1.0, norms ./ (weight+1e-8))
-    p2 ./= max.(1.0, norms ./ (weight+1e-8))
-    p3 ./= max.(1.0, norms ./ (weight+1e-8))
+    temp .= 1 ./ max.(1.0, sqrt.( p1 .^2 + p2 .^2 + p3 .^2 )./ (weight+1e-8))
+    p1 .*= temp
+    p2 .*= temp
+    p3 .*= temp
 end
 
 "Project l1 norm (soft thresholding)"
 function proj_l1!(x::AbstractArray{T}, weight::T) where {T<:AbstractFloat}
     x .= sign.(x) .* max.(abs.(x) .- weight, 0.0)
+end
+
+"Project onto (S1,l1) nuclear norm"
+function proj_dual_S1l1()
 end
 
 end

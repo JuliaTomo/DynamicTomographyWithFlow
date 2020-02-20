@@ -1,8 +1,5 @@
 using TomoForward
 using XfromProjections
-# using SparseArrays, LinearAlgebra
-# include("../src/iterative/util_convexopt.jl")
-# include("../src/iterative/tv_primaldual.jl")
 
 # using MKLSparse # uncomment if you've installed MKLSparse, it will boost the performance
 

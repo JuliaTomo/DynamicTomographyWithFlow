@@ -18,20 +18,22 @@ function _recon2d_tv_primaldual!(u, A, b0, niter, w_tv, sigmas, tau)
     divp2 = similar(p2)
     
     data1 = similar(b)
+    u_temp = similar(u)
 
     for it=1:niter
         u_prev .= u
 
         # dual update
-        data1 .= (A*vec(ubar) .- b)
+        data1 .= mul!(data1, A, vec(ubar)) .- b
         # p1 = proj_dual_l1(p1_ascent, w_data) # l1 norm
         p1 .= (p1 .+ sigmas[1] * data1) ./ (sigmas[1] + 1.0) # l2 norm
-        p_adjoint .= reshape(At * p1, H, W)
+        mul!(view(p_adjoint, :), At, p1)
+        # p_adjoint .= reshape(At * p1, H, W)
 
         grad!(du, ubar)
         p2 .+= sigmas[2] .* du
-        # util_convexopt.proj_dual_iso!(p2, w_tv)
-        util_convexopt.proj_l1!(p2, w_tv) #anisotropic TV
+        util_convexopt.proj_dual_iso!(p2, u_temp, w_tv)
+        # util_convexopt.proj_dual_l1!(p2, w_tv) #anisotropic TV
         
         p_adjoint .-= div!(divp2, p2) # p1_adjoint + p2_adjoint
         
@@ -101,6 +103,8 @@ function _recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, nite
     divu = similar(p2)
     temp = zeros(size(A, 1))
 
+    u_temp = similar(u)
+
     for it=1:niter
         u_prev .= u
         
@@ -121,8 +125,9 @@ function _recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, nite
         # p2: 3d gradient and divergence
         grad!(du, ubar)
         p2 .+= sigmas[2] .* du
-        # util_convexopt.proj_dual_iso!(p2, w_tv)
-        util_convexopt.proj_l1!(p2, w_tv) # anisotropic TV
+        temp_u = view(du)
+        util_convexopt.proj_dual_iso!(p2, u_temp, w_tv)
+        # util_convexopt.proj_dual_l1!(p2, w_tv) # anisotropic TV
 
         # if p_adjoint .++ -view(), memory allocation increases. WHY??
         p_adjoint .-= div!(divu, p2)
@@ -159,6 +164,7 @@ function recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b::Array{T, 3}, niter:
     @time op_A_norm = util_convexopt.compute_opnorm(A)
     println("@ opnorm of forward projection operator: $op_A_norm")
     ops_norm = [op_A_norm, sqrt(8)]
+    println("TODO! in 3d, sqrt(8) would be wrong")
     
     sigmas = zeros(length(ops_norm))
     for i=1:length(ops_norm)

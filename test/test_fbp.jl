@@ -1,8 +1,6 @@
 using TomoForward
 using XfromProjections
 
-# img = imread("test_data/shepplogan512.png")[:,:,1]
-
 img = zeros(100, 100)
 img[30:51, 40:81] .= 1
 
