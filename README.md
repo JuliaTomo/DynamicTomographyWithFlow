@@ -30,7 +30,8 @@ Please see codes in test folder.
 ### Iterative methods
 
 - SIRT [Andersen, Kak 1984]
-- TV using primal dual [Chambolle, Pock 2011] method [4]
+- TV using primal dual [Chambolle, Pock 2011]
+- TNV [Duran et al, 2016] using primal dual
 
 ## Edges from projections
 
@@ -51,3 +52,4 @@ Please see codes in test folder.
 - Andersen, A.H., Kak, A.C., 1984. Simultaneous Algebraic Reconstruction Technique (SART): A superior implementation of the ART algorithm. Ultrasonic Imaging 6. https://doi.org/10.1016/0161-7346(84)90008-7
 - Chambolle, A., Pock, T., 2011. A First-Order Primal-Dual Algorithm for Convex Problems with Applications to Imaging. Journal of Mathematical Imaging and Vision 40, 120–145. https://doi.org/10.1007/s10851-010-0251-1
 - Srinivasa, N., Ramakrishnan, K.R., Rajgopal, K., 1992. Detection of edges from projections. IEEE Transactions on Medical Imaging 11, 76–80. https://doi.org/10.1109/42.126913
+- Duran, J., Moeller, M., Sbert, C., Cremers, D., 2016. Collaborative Total Variation: A General Framework for Vectorial TV Models. SIAM Journal on Imaging Sciences 9, 116–151. https://doi.org/10.1137/15M102873X

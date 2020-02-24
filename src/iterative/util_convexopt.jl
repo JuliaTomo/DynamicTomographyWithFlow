@@ -1,6 +1,7 @@
 module util_convexopt
 
-export LinOp, compute_opnorm, proj_l1!, grad!, div!
+using LinearAlgebra
+export LinOp, compute_opnorm, proj_l1!, grad!, div!, prox_nuclear!
 
 # See http://www.ima.umn.edu/materials/2019-2020/SW10.14-18.19/28302/talk.pdf
 struct LinOp
@@ -22,10 +23,13 @@ export D
 function compute_opnorm(A, niter=3)
     lamb = 0
     x = rand(size(A,2))
+    x_next = similar(x)
+    Ax = zeros(size(A, 1))
+    At = A'
 
     for i=1:niter
-        Ax = A*x # A'*A*x is very slow (WHY?) Todo
-        x_next = A'*Ax
+        mul!(Ax, A, x) # A'*A*x is very slow (WHY?) Todo
+        mul!(x_next, At, Ax)
         lamb_prev = lamb
         lamb = sqrt(sum(x_next.^2))
 
@@ -153,8 +157,46 @@ function proj_l1!(x::AbstractArray{T}, weight::T) where {T<:AbstractFloat}
     x .= sign.(x) .* max.(abs.(x) .- weight, 0.0)
 end
 
-"Project onto (S1,l1) nuclear norm"
-function proj_dual_S1l1()
+"""
+
+Proximal operator of nuclear norm to x. y=prox_{s f}(x)
+
+
+"""
+function prox_nuclear!(y, x, stepsize)
+    H, W, M, C = size(x) # Dim : 2 for 2D, 3 for 3D
+    x_HxWxCx2 = PermutedDimsArray(x, [1,2,4,3])
+    x_ = reshape(x_HxWxCx2, H*W, C, 2)
+    y_ = reshape(y, H*W, 2, C)
+
+    EPS = eps()
+
+    x_svd = mapslices(svd!, x_, dims=[2,3])
+    # x_svd = dropdims(x_svd_, dims=4)
+    for (hw, svd_slice) in enumerate(x_svd)
+        for i=1:2
+            # svd_slice.S[i] svd_slice.S .- stepsize
+            if (svd_slice.S[i] > EPS)
+                svd_slice.S[i] = max(svd_slice.S[i] - stepsize, 0.0) / svd_slice.S[i]
+            else
+                svd_slice.S[i] = max(svd_slice.S[i] - stepsize, 0.0)
+            end
+        end
+        x_hw = view(x_, hw, :, :) # [C x 2]
+        y_hw = view(y_, hw, :, :) # [2 x C]
+
+        svd_slice.Vt[1,1] *= svd_slice.S[1]
+        svd_slice.Vt[2,2] *= svd_slice.S[2]
+
+        mul!(x_hw, x_hw, svd_slice.Vt')
+        mul!(x_hw, x_hw, svd_slice.Vt)
+
+        y_hw[1,1] = x_hw[1,1]
+        y_hw[2,2] = x_hw[2,2]
+        y_hw[2,1] = x_hw[1,2]
+        y_hw[1,2] = x_hw[2,1]
+    end
+    return y
 end
 
 end
