@@ -8,39 +8,40 @@ Proximal operator of nuclear norm to x. y=prox_{s f}(x)
 function prox_nuclear_wo_svd!(y, x, stepsize)
     H, W, M, C = size(x) # Dim : 2 for 2D, 3 for 3D (C >= 2)
     x_HxWxCx2 = PermutedDimsArray(x, [1,2,4,3])
-    y_HxWxCx2 = PermutedDimsArray(x, [1,2,4,3])
+    y_HxWxCx2 = PermutedDimsArray(y, [1,2,4,3])
     x_ = reshape(x_HxWxCx2, H*W, C, 2)
     y_ = reshape(y_HxWxCx2, H*W, C, 2)
 
-    EPS = eps()
+    EPS = 1e-8
 
     # x_svd = mapslices(svd!, x_, dims=[2,3])
     # x_svd = dropdims(x_svd_, dims=4)
     Threads.@threads for hw=1:H*W
         x_hw = view(x_, hw, :, :) # [C x 2]
-        y_hw = view(x_, hw, :, :)
+        y_hw = view(y_, hw, :, :)
 
-        x_hw1 = view(x_hw, :, 1)
-        x_hw2 = view(x_hw, :, 2)
-        # BB : 2x2 matrix for each pixel
-        BBx = sum(x_hw1)
-        BBy = sum(x_hw2)
-        BB1 = BBx * BBx
-        BB2 = BBx * BBy
-        BB4 = BBy * BBy
+        BB1 = 0.0
+        BB2 = 0.0
+        BB4 = 0.0
         
+        for k=1:C
+            BB1 += x_hw[k, 1] * x_hw[k, 1]
+            BB2 += x_hw[k, 1] * x_hw[k, 2]
+            BB4 += x_hw[k, 2] * x_hw[k, 2]
+        end
+
         # # eigenvalues of BB
         T = BB1 + BB4
         D = BB1 * BB4 - BB2 * BB2
 
-        Δ = sqrt( T * T - 4 * D )
+        det = sqrt( max( ( T*T / 4.0) - D, 0.0) )
+        
+        eig1 = max(  (T / 2.0) + det , 0.0 )
+        eig2 = max(  (T / 2.0) - det , 0.0 )
+        sigma1 = sqrt(eig1)
+        sigma2 = sqrt(eig2)
 
-        eig1 = ( T + Δ ) / 2.
-        eig2 = ( T - Δ ) / 2.
-        sigma1 = sqrt(max(eig1, 0.0))
-        sigma2 = sqrt(max(eig2, 0.0))
-
-        if BB2 > EPS
+        if abs(BB2) > EPS
             v0 = BB2
             V1 = eig1 - BB4
             V2 = eig2 - BB4
@@ -67,7 +68,7 @@ function prox_nuclear_wo_svd!(y, x, stepsize)
         end
 
         ss1 = max(sigma1 - stepsize, 0.0)
-        ss2 = max(sigma1 - stepsize, 0.0)
+        ss2 = max(sigma2 - stepsize, 0.0)
         if sigma1 > EPS
             ss1 /= sigma1
         end
@@ -114,7 +115,7 @@ function div2d!(divp, p) where {T<:AbstractFloat}
     return p1_x
 end
 
-function _recon2d_tnv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_tnv, sigmas, tau) where {T<:AbstractFloat}
+function _recon2d_tnv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_data, sigmas, tau) where {T<:AbstractFloat}
     At = A'
     H, W, C = size(u)
     
@@ -136,7 +137,7 @@ function _recon2d_tnv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_t
     
     data1 = similar(b)
 
-    invsigma11 = 1. / (sigmas[1] + 1.0)
+    invsigma11 = 1. / (sigmas[1] / w_data + 1.0) # l2 data, (Handa Sec 8.1)
     invsigma2 = 1. / sigmas[2]
 
     for it=1:niter
@@ -150,8 +151,7 @@ function _recon2d_tnv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_t
 
             # dual update: data fidelity
             data1_c .= mul!(data1_c, A, vec(ubar_c)) .- view(b, :, c)
-            p1_c .+= sigmas[1] .* data1_c
-            p1_c .*= invsigma11 # l2 norm
+            p1_c .= (p1_c .+ sigmas[1] .* data1_c) .* invsigma11
             mul!(p_adjoint_c, At, p1_c)
             
             # compute gradient for TNV later
@@ -161,7 +161,8 @@ function _recon2d_tnv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_t
 
         # projection onto dual of (S1,l1)
         p2_temp .= du .+ invsigma2 .* p2
-        prox_nuclear_wo_svd!(g, p2_temp, w_tnv)
+        prox_nuclear_wo_svd!(g, p2_temp, invsigma2)
+        # prox_nuclear!(g, p2_temp, invsigma2)
         p2 .+= sigmas[2] .* ( du .- g )
 
         Threads.@threads for c=1:C
@@ -176,7 +177,7 @@ function _recon2d_tnv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_t
         ubar .= 2 .* u .- u_prev
 
         # compute primal energy (optional)
-        if it % 10 == 0
+        if it % 20 == 0
             energy = sum(data1.^2) / length(data1)
             println("$it, approx. data term: $energy")
         end
@@ -197,12 +198,12 @@ niter: number of iterations
 w_tv: weight for TV term
 c : See 61 page in 2016_Chambolle,Pock_An_introduction_to_continuous_optimization_for_imagingActa_Numerica
 """
-function recon2d_tnv_primaldual!(u::Array{T, 3}, A, b::Array{T, 3}, niter::Int, w_tnv::T, c=1.0) where {T <: AbstractFloat}
+function recon2d_tnv_primaldual!(u::Array{T, 3}, A, b::Array{T, 3}, niter::Int, w_data::T, c=1.0) where {T <: AbstractFloat}
     if size(u, 3) != size(b, 3)
         error("The channel size of u and b should match.")
     end
 
-    op_A_norm = compute_opnorm(A, 6)
+    op_A_norm = compute_opnorm(A, 6) # for safety
     println("@ opnorm of forward projection operator: $op_A_norm")
     ops_norm = [op_A_norm, sqrt(8)]
     
@@ -214,6 +215,6 @@ function recon2d_tnv_primaldual!(u::Array{T, 3}, A, b::Array{T, 3}, niter::Int, 
     tau = c / sum(ops_norm)
     println("@ step sizes sigmas: ", sigmas, ", tau: $tau")
     
-    return _recon2d_tnv_primaldual!(u, A, b, niter, w_tnv, sigmas, tau)
+    return _recon2d_tnv_primaldual!(u, A, b, niter, w_data, sigmas, tau)
 end
 

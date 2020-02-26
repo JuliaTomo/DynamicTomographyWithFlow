@@ -44,7 +44,7 @@ function _recon2d_tv_primaldual!(u, A, b0, niter, w_tv, sigmas, tau)
         ubar .= 2 .* u .- u_prev
 
         # compute primal energy (optional)
-        if it % 50 == 0
+        if it % 20 == 0
             energy = sum(data1.^2) / length(data1) + sum(abs.(du)) / length(du)
             println("$it, approx. primal energy: $energy")
         end

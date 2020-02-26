@@ -49,6 +49,8 @@ function recon2d_sirt!(u0::Array{T, 2}, A::SparseMatrixCSC{T,Int}, b0::Array{T, 
             println("$it l2 residual: $residual")
         end
     end
+
+    return u
 end
 
 
