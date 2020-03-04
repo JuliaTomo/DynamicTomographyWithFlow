@@ -16,7 +16,7 @@ pkg> add https://github.com/JuliaTomo/XfromProjections.jl
 
 ## Examples
 
-Please see codes in test folder.
+Please see codes in `examples` folder.
 
 
 # Features
