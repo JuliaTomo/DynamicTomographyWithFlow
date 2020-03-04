@@ -1,6 +1,6 @@
-module optical_flow
+#module optical_flow
 
-export get_flows, compute_warping_operator
+#export get_flows, compute_warping_operator
 
 using PyCall
 using Suppressor
@@ -161,4 +161,4 @@ function compute_warping_operator(flow)
     return LinearOperator(W_mat)
 end
 
-end
+#end

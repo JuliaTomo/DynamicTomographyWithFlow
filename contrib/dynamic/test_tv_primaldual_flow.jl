@@ -6,10 +6,12 @@ using ImageTransformations
 using StaticArrays
 using PyCall
 using Logging
+using Suppressor
+include("../../src/iterative/util_convexopt.jl")
+using .util_convexopt
 include("./data/phantoms/simple_phantoms.jl")
 include("./tv_primaldual_flow.jl")
 include("./optical_flow.jl")
-
 
 replace_nan(v) = map(x -> isnan(x) ? zero(x) : x, v)
 
