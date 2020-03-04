@@ -8,7 +8,7 @@ function proj_dual_iso2d!(p, temp, weight)
     p2 .*= temp
 end
 
-"Project l1 norm (soft thresholding)"
+"Project to dual l1 norm"
 function proj_dual_l1!(x, weight)
     x ./= max.(1.0, abs.(x) / weight)
 end
