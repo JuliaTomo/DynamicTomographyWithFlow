@@ -1,4 +1,3 @@
-#using .util_convexopt
 using LinearAlgebra
 
 function proj_dual_iso2d!(p, temp, weight)
@@ -30,7 +29,6 @@ function div2d!(divp, p)
     p1_x .+= p2_y
     return p1_x
 end
-
 
 function grad2d!(du, u) where {T<:AbstractFloat}
     du1, du2 = view(du, :, :, 1), view(du, :, :, 2)
@@ -163,7 +161,6 @@ c : See 61 page in 2016_Chambolle,Pock_An_introduction_to_continuous_optimizatio
 """
 function recon2d_tv_primaldual_flow(A_list, bs::Array{R, 2}, u0s::Array{R, 3}, niter1::Int, niter2::Int, w_tv::R, w_flow::R, c=1.0) where {R <: AbstractFloat}
 
-c = 10.0
     height,width,frames = size(u0s)
     v = zeros(height, width, 2, frames)
     u = u0s
