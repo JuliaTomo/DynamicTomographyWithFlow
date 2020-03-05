@@ -7,8 +7,8 @@ using StaticArrays
 using PyCall
 using Logging
 using Suppressor
-include("../../src/iterative/util_convexopt.jl")
-using .util_convexopt
+#include("../../src/iterative/util_convexopt.jl")
+#using .util_convexopt
 include("./data/phantoms/simple_phantoms.jl")
 include("./tv_primaldual_flow.jl")
 include("./optical_flow.jl")
@@ -48,10 +48,11 @@ niter=500
 u0s = zeros(H,W,size(frames)[3])
 
 w_tv = 0.3
-w_flow  = 0.0001
+w_flow  = 0.05
 
 @info "Reconstructing using joint motion estimation and reconstruction"
-us_flow = recon2d_tv_primaldual_flow(As, bs, u0s, 20, niter, w_tv, w_flow)
+c=10.0
+us_flow = recon2d_tv_primaldual_flow(As, bs, u0s, 20, niter, w_tv, w_flow, c)
 
 @info "Reconstruction using tv regularization frame by frame"
 us_tv = zeros(H,W,size(frames)[3])
@@ -59,7 +60,7 @@ for t = 1:size(frames)[3]
     A = As[t]
     p = bs[:,t]
     u0 = u0s[:,:,t]
-    us_tv[:,:,t] = recon2d_tv_primaldual!(us_tv[:,:,t], A, p, niter, w_tv)
+    us_tv[:,:,t] .= recon2d_tv_primaldual!(us_tv[:,:,t], A, p, niter, w_tv, c)
 end
 
 @info "Preparing results in human readable format"

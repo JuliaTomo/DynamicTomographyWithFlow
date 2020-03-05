@@ -72,6 +72,7 @@ function _recon2d_tv_primaldual_flow(As,A_norm,W_list,W_norm,u0s,bs,w_tv,w_flow,
     height, width, frames = size(u0s)
 
     u = u0s
+    u_prev = similar(u)
     ubar = deepcopy(u)
     #
     p1 = zeros(size(bs))
@@ -80,6 +81,7 @@ function _recon2d_tv_primaldual_flow(As,A_norm,W_list,W_norm,u0s,bs,w_tv,w_flow,
 
     p_adjoint  = similar(p3)
     p3_adjoint = similar(p3)
+    p_adjoint_prev = similar(p3)
     opsnorm = [A_norm, sqrt(8), W_norm]
     tau = c /sum(opsnorm)
 
@@ -90,15 +92,17 @@ function _recon2d_tv_primaldual_flow(As,A_norm,W_list,W_norm,u0s,bs,w_tv,w_flow,
 
     Wus = similar(u)
 
-    for it=1:niter
-        u_prev = deepcopy(u)
-        p_adjoint_prev = deepcopy(p_adjoint)
-        for t=1:frames
-            A = As[t]
-            _p1, _p2, _p3, _ubar, _p_adjoint, _p3_adjoint = view(p1,:,t), view(p2,:,:,:,t), view(p3,:,:,t), view(ubar,:,:,t), view(p_adjoint,:,:,t), view(p3_adjoint,:,:,t)
-            sigmas = map(n-> 1.0/(n*c), opsnorm)
+    sigmas = map(n -> 1.0/(n*c), opsnorm)
+    #@info sigmas
 
-	    @views data1[:,t] .= mul!(data1[:,t], A, vec(_ubar)) .- bs[:,t]
+    for it=1:niter
+        u_prev .= u
+        p_adjoint_prev .= p_adjoint
+        Threads.@threads for t=1:frames
+            A = As[t]
+            #sigmas = map(n-> 1.0/(n*c), opsnorm)
+
+	    @views data1[:,t] .= mul!(data1[:,t], A, vec(ubar[:,:,t])) .- bs[:,t]
 	    @views p1[:,t] .= (p1[:,t] .+ sigmas[1] * data1[:,t]) / (sigmas[1] + 1.0)
 	    @views mul!( view(p_adjoint[:,:,t], :), A', p1[:,t])
 
@@ -110,27 +114,27 @@ function _recon2d_tv_primaldual_flow(As,A_norm,W_list,W_norm,u0s,bs,w_tv,w_flow,
 	    @views p_adjoint[:,:,t] .-= div2d!(divp2[:,:,:,t], p2[:,:,:,t])
 
             if t < frames
-                _ubar_1 = view(ubar,:,:,t+1)
+				_p3 = view(p3, :, :, t)
 		        Wu = view(Wus, :, :, t)
                 Wuv = vec(Wu)
-                mul!(Wuv, W_list[t], vec(_ubar_1 - _ubar))
+                @views Wuv .= mul!(Wuv, W_list[t], vec(ubar[:,:,t+1])) .- vec(ubar[:,:,t])
                
 	            @views _p3 .+= sigmas[3] .* Wu
                 proj_dual_l1!(_p3, w_flow)
                 p3_adj = view(p3_adjoint[:,:,t], :)
                 
                 mul!(p3_adj, W_list[t]', vec(_p3))
-				@views p_adjoint[:,:,t] .+= p3_adjoint[:,:,t]
+				@views p_adjoint[:,:,t+1] .+= p3_adjoint[:,:,t]
+                @views p_adjoint[:,:,t] .-= _p3
             end
         end
 
         # primal update
-        #u_descent = u - tau*p_adjoint
         u .-= tau * p_adjoint
         u .= max.(u, 0.0) # positivity constraint
         
         # acceleration
-        ubar .= 2*u - u_prev
+        ubar .= 2*u .- u_prev
 		
 		if it % 50 == 0	
 			#du = u_prev - u
@@ -159,6 +163,7 @@ c : See 61 page in 2016_Chambolle,Pock_An_introduction_to_continuous_optimizatio
 """
 function recon2d_tv_primaldual_flow(A_list, bs::Array{R, 2}, u0s::Array{R, 3}, niter1::Int, niter2::Int, w_tv::R, w_flow::R, c=1.0) where {R <: AbstractFloat}
 
+c = 10.0
     height,width,frames = size(u0s)
     v = zeros(height, width, 2, frames)
     u = u0s
@@ -170,7 +175,11 @@ function recon2d_tv_primaldual_flow(A_list, bs::Array{R, 2}, u0s::Array{R, 3}, n
         u_prev = u
         v_prev = v
         W_list = mapslices(f -> compute_warping_operator(f), v,dims=[1,2,3])
-            W_norm = compute_opnorm_block(W_list, shape)
+        # check if W_list is correct
+        println(sum(abs.(W_list[1]*vec(u[:,:,2]) - vec(u[:,:,1]))))
+        @views @info "check if W_list is correct. data term after and before warping" sum(abs.(W_list[1]*vec(u[:,:,2]) - vec(u[:,:,1])))/(height*width) sum(abs.(u[:,:,2] - u[:,:,1]))/(height*width) 
+           
+           W_norm = compute_opnorm_block(W_list, shape)
             u = _recon2d_tv_primaldual_flow(A_list,A_norm,W_list,W_norm,u,bs,w_tv,w_flow,c,niter2)
         v = get_flows(u)
     end
