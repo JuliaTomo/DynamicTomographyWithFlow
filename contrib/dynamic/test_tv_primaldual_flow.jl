@@ -59,7 +59,7 @@ for t = 1:size(frames)[3]
     A = As[t]
     p = bs[:,t]
     u0 = u0s[:,:,t]
-    us_tv[:,:,t] = recon2d_tv_primaldual(A, p, u0, niter, w_tv)
+    @views us_tv[:,:,t] = recon2d_tv_primaldual!(us_tv[:,:,t], A, p, niter, w_tv)
 end
 
 @info "Preparing results in human readable format"
@@ -72,7 +72,7 @@ anim = @animate for t=1:size(frames)[3]
 end
 
 cwd = @__DIR__
-path = normpath(joinpath(@__DIR__, "results"))
+path = normpath(joinpath(@__DIR__, "result"))
 cd(path)
 gif(anim, "reconstruction_flow.gif", fps = 1)
 cd(cwd)

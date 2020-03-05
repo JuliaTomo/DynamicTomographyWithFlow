@@ -141,7 +141,10 @@ function _recon2d_tv_primaldual_flow(As,A_norm,W_list,W_norm,u0s,bs,w_tv,w_flow,
         
         # acceleration
         ubar .= 2*u - u_prev
-        @info "primal gap:" primal_gap
+		
+		if it % 20 == 0
+        	@info "primal gap:" primal_gap
+		end
     end
     return u
 end
@@ -177,7 +180,6 @@ function recon2d_tv_primaldual_flow(A_list, bs::Array{R, 2}, u0s::Array{R, 3}, n
             W_norm = compute_opnorm_block(W_list, shape)
             u = _recon2d_tv_primaldual_flow(A_list,A_norm,W_list,W_norm,u,bs,w_tv,w_flow,c,niter2)
         v = get_flows(u)
-        next!(p)
     end
     return u
 end
