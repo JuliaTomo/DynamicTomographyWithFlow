@@ -2,11 +2,9 @@ using TomoForward
 using Images
 using Plots
 using XfromProjections
-using ImageTransformations
 using StaticArrays
 using PyCall
 using Logging
-using Suppressor
 include("./simple_phantoms.jl")
 include("./tv_primaldual_flow.jl")
 include("./optical_flow.jl")
@@ -72,6 +70,7 @@ end
 
 cwd = @__DIR__
 path = normpath(joinpath(@__DIR__, "result"))
+!isdir(path) && mkdir(path)
 cd(path)
 gif(anim, "reconstruction_flow.gif", fps = 1)
 cd(cwd)
