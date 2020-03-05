@@ -109,26 +109,19 @@ function _recon2d_tv_primaldual_flow(As,A_norm,W_list,W_norm,u0s,bs,w_tv,w_flow,
 
 	    @views p_adjoint[:,:,t] .-= div2d!(divp2[:,:,:,t], p2[:,:,:,t])
 
-            #data1, data2, p1_adjoint, p2_adjoint = get_tv_adjoints!(ops, bs[:,t], ubar[:,:,t], w_tv, sigmas[1:2], _p1, _p2, height, width)
-            #p_adjoint[:,:,t] = p1_adjoint + p2_adjoint
-
             if t < frames
                 _ubar_1 = view(ubar,:,:,t+1)
-		Wu = view(Wus, :, :, t)
+		        Wu = view(Wus, :, :, t)
                 Wuv = vec(Wu)
                 mul!(Wuv, W_list[t], vec(_ubar_1 - _ubar))
-		#Wu = W_list[t]*(collect(Iterators.flatten(_ubar_1))) - (collect(Iterators.flatten(_ubar)))
                
-	        @views _p3 .+= sigmas[3] .* Wu
+	            @views _p3 .+= sigmas[3] .* Wu
                 proj_dual_l1!(_p3, w_flow)
                 p3_adj = view(p3_adjoint[:,:,t], :)
                 
                 mul!(p3_adj, W_list[t]', vec(_p3))
-                #_p3_adjoint[:,:] += reshape(p3_adjoint_t1, height,width)
-                #_p3_adjoint[:,:] += -_p3
-		@views p_adjoint[:,:,t] .+= p3_adjoint[:,:,t]
+				@views p_adjoint[:,:,t] .+= p3_adjoint[:,:,t]
             end
-            #p_adjoint[:,:,t] += p3_adjoint[:,:,t]
         end
 
         # primal update
@@ -136,14 +129,14 @@ function _recon2d_tv_primaldual_flow(As,A_norm,W_list,W_norm,u0s,bs,w_tv,w_flow,
         u .-= tau * p_adjoint
         u .= max.(u, 0.0) # positivity constraint
         
-        du = u_prev - u
-        primal_gap = sum(abs.(-p_adjoint+p_adjoint_prev + du/tau)) / length(p_adjoint)
-        
         # acceleration
         ubar .= 2*u - u_prev
 		
-		if it % 20 == 0
-        	@info "primal gap:" primal_gap
+		if it % 50 == 0	
+			#du = u_prev - u
+        	primal_gap = sum(abs.(-p_adjoint+p_adjoint_prev + (u_prev-u)/tau)) / length(p_adjoint)
+        	#@info "primal gap:" primal_gap 
+			@info it primal_gap
 		end
     end
     return u

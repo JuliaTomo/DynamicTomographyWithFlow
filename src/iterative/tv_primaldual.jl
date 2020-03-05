@@ -53,7 +53,7 @@ function _recon2d_tv_primaldual!(u, A, b0, niter, w_tv, sigmas, tau)
 end
 
 """
-    recon2d_tv_primaldual!(u::Array{T, 2}, A, b::Array{T, 2}, niter::Int, w_tv::T, c=1.0)
+    recon2d_tv_primaldual!(u::Array{T, 2}, A, b, niter::Int, w_tv::T, c=1.0)
 
 Reconstruct a 2d image by TV-L2 model using Primal Dual optimization method
 

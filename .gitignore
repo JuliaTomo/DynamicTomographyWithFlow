@@ -9,6 +9,7 @@ result
 !.trash
 .DS_Store
 *.mem
+*.swp
 
 ## C
 # Prerequisites
