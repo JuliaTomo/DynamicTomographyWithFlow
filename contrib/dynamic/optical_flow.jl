@@ -15,7 +15,7 @@ function __init__()
     import numpy as np
     import pyflow
 
-    def py_flow(img1,img2,alpha=0.012, ratio=0.75, minWidth=20, nOuterFPIterations=1, nInnerFPIterations=1, nSORIterations=30, colType=1):
+    def py_flow(img1,img2,alpha=0.012, ratio=0.75, minWidth=20, nOuterFPIterations=7, nInnerFPIterations=1, nSORIterations=30, colType=1):
         img1 = np.array(img1)
         img2 = np.array(img2)
         height, width = img1.shape

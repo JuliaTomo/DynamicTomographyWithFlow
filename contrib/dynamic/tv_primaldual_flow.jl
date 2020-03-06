@@ -12,20 +12,20 @@ function proj_dual_l1!(x, weight)
     x ./= max.(1.0, abs.(x) / weight)
 end
 
-function div2d!(divp, p) 
+function div2d!(divp, p)
     p1, p2 = view(p,:,:,1), view(p,:,:,2)
     p1_x, p2_y = view(divp,:,:,1), view(divp,:,:,2)
-    
+
     # p2_y is temp variable to save memory
     p1_x         .=  p1 - circshift!(p2_y, p1, [0, 1])
     p1_x[:, end] .= -p1[:, end-1]
     p1_x[:,   1] .=  p1[:, 1]
-    
+
     circshift!(p2_y, p2, [1, 0])
     p2_y         .= p2 - p2_y
     p2_y[end, :] .= -p2[end-1, :]
     p2_y[1,   :] .=  p2[1, :]
-    
+
     p1_x .+= p2_y
     return p1_x
 end
@@ -65,17 +65,13 @@ function compute_opnorm_block(As,shape, niter=3)
     return sqrt(λ)
 end
 
-function _recon2d_tv_primaldual_flow(As,A_norm,W_list,W_norm,u0s,bs,w_tv,w_flow,c,niter)
+function _recon2d_tv_primaldual_flow(As,A_norm,W_list,W_norm,u0s,bs,w_tv,w_flow,c,niter,p1,p2,p3)
     #A variational reconstruction method for undersampled dynamic x-ray tomography based on physical motion models (Burger)#
     height, width, frames = size(u0s)
 
     u = u0s
     u_prev = similar(u)
     ubar = deepcopy(u)
-    #
-    p1 = zeros(size(bs))
-    p2 = zeros(height, width, 2,frames)
-    p3 = zeros(height, width, frames)
 
     p_adjoint  = similar(p3)
     p3_adjoint = similar(p3)
@@ -116,11 +112,11 @@ function _recon2d_tv_primaldual_flow(As,A_norm,W_list,W_norm,u0s,bs,w_tv,w_flow,
 		        Wu = view(Wus, :, :, t)
                 Wuv = vec(Wu)
                 @views Wuv .= mul!(Wuv, W_list[t], vec(ubar[:,:,t+1])) .- vec(ubar[:,:,t])
-               
+
 	            @views _p3 .+= sigmas[3] .* Wu
                 proj_dual_l1!(_p3, w_flow)
                 p3_adj = view(p3_adjoint[:,:,t], :)
-                
+
                 mul!(p3_adj, W_list[t]', vec(_p3))
 				@views p_adjoint[:,:,t+1] .+= p3_adjoint[:,:,t]
                 @views p_adjoint[:,:,t] .-= _p3
@@ -130,14 +126,14 @@ function _recon2d_tv_primaldual_flow(As,A_norm,W_list,W_norm,u0s,bs,w_tv,w_flow,
         # primal update
         u .-= tau * p_adjoint
         u .= max.(u, 0.0) # positivity constraint
-        
+
         # acceleration
         ubar .= 2*u .- u_prev
-		
-		if it % 50 == 0	
+
+		if it % 50 == 0
 			#du = u_prev - u
         	primal_gap = sum(abs.(-p_adjoint+p_adjoint_prev + (u_prev-u)/tau)) / length(p_adjoint)
-        	#@info "primal gap:" primal_gap 
+        	#@info "primal gap:" primal_gap
 			@info it primal_gap
 		end
     end
@@ -166,18 +162,20 @@ function recon2d_tv_primaldual_flow(A_list, bs::Array{R, 2}, u0s::Array{R, 3}, n
     u = u0s
     shape = (height*width, frames)
     A_norm = compute_opnorm_block(A_list, shape)
- 
 
+    p1 = zeros(size(bs))
+    p2 = zeros(height, width, 2,frames)
+    p3 = zeros(height, width, frames)
     for i=1:niter1
         u_prev = u
         v_prev = v
         W_list = mapslices(f -> compute_warping_operator(f), v,dims=[1,2,3])
         # check if W_list is correct
         println(sum(abs.(W_list[1]*vec(u[:,:,2]) - vec(u[:,:,1]))))
-        @views @info "check if W_list is correct. data term after and before warping" sum(abs.(W_list[1]*vec(u[:,:,2]) - vec(u[:,:,1])))/(height*width) sum(abs.(u[:,:,2] - u[:,:,1]))/(height*width) 
-           
-           W_norm = compute_opnorm_block(W_list, shape)
-            u = _recon2d_tv_primaldual_flow(A_list,A_norm,W_list,W_norm,u,bs,w_tv,w_flow,c,niter2)
+        @views @info "check if W_list is correct. data term after and before warping" sum(abs.(W_list[1]*vec(u[:,:,2]) - vec(u[:,:,1])))/(height*width) sum(abs.(u[:,:,2] - u[:,:,1]))/(height*width)
+
+        W_norm = compute_opnorm_block(W_list, shape)
+        u = _recon2d_tv_primaldual_flow(A_list,A_norm,W_list,W_norm,u,bs,w_tv,w_flow,c,niter2,p1,p2,p3)
         v = get_flows(u)
     end
     return u
