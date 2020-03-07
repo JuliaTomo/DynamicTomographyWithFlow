@@ -157,6 +157,12 @@ function proj_l1!(x::AbstractArray{T}, weight::T) where {T<:AbstractFloat}
     x .= sign.(x) .* max.(abs.(x) .- weight, 0.0)
 end
 
+"Project l1 norm (soft thresholding)"
+function proj_dual_l1!(x::AbstractArray{T}, weight::T) where {T<:AbstractFloat}
+    x ./= max.(1.0, abs.(x) / weight)
+end
+
+
 """
 
 Proximal operator of nuclear norm to x. y=prox_{s f}(x)
