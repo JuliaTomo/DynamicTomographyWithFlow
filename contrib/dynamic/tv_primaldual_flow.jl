@@ -117,10 +117,13 @@ function _recon2d_tv_primaldual_flow(As,A_norm,W_list,W_norm,u0s,bs,w_tv,w_flow,
                 p3_adj = view(p3_adjoint[:,:,t], :)
 
                 mul!(p3_adj, W_list[t]', vec(_p3))
-                @views p_adjoint[:,:,t+1] .+= p3_adjoint[:,:,t]
+                # @views p_adjoint[:,:,t+1] .+= p3_adjoint[:,:,t] # race condition
                 @views p_adjoint[:,:,t] .-= _p3
             end
         end
+
+        # add p3_adjoint to prevent race condition
+        @views p_adjoint[:,:,2:end] .+= p3_adjoint[:,:,1:end-1]
 
         # primal update
         u .-= tau * p_adjoint
