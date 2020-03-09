@@ -96,32 +96,34 @@ function _recon2d_tv_primaldual_flow(As,A_norm,W_list,W_norm,u0s,bs,w_tv,w_flow,
             A = As[t]
             #sigmas = map(n-> 1.0/(n*c), opsnorm)
 
-	    @views data1[:,t] .= mul!(data1[:,t], A, vec(ubar[:,:,t])) .- bs[:,t]
-	    @views p1[:,t] .= (p1[:,t] .+ sigmas[1] * data1[:,t]) / (sigmas[1] + 1.0)
-	    @views mul!( view(p_adjoint[:,:,t], :), A', p1[:,t])
+            @views data1[:,t] .= mul!(data1[:,t], A, vec(ubar[:,:,t])) .- bs[:,t]
+            @views p1[:,t] .= (p1[:,t] .+ sigmas[1] * data1[:,t]) / (sigmas[1] + 1.0)
+            @views mul!( view(p_adjoint[:,:,t], :), A', p1[:,t])
 
-	    @views grad2d!(u_grad[:,:,:,t], ubar[:,:,t])
-#println(size(p2), size(u_grad), sigmas)
-	    @views p2[:,:,:,t] .+= sigmas[2] .* u_grad[:,:,:,t]
-	    @views proj_dual_iso2d!(p2[:,:,:,t], u_temp[:,:,t], w_tv)
+            @views grad2d!(u_grad[:,:,:,t], ubar[:,:,t])
+            @views p2[:,:,:,t] .+= sigmas[2] .* u_grad[:,:,:,t]
+            @views proj_dual_iso2d!(p2[:,:,:,t], u_temp[:,:,t], w_tv)
 
-	    @views p_adjoint[:,:,t] .-= div2d!(divp2[:,:,:,t], p2[:,:,:,t])
+            @views p_adjoint[:,:,t] .-= div2d!(divp2[:,:,:,t], p2[:,:,:,t])
 
             if t < frames
-				_p3 = view(p3, :, :, t)
-		        Wu = view(Wus, :, :, t)
+                _p3 = view(p3, :, :, t)
+                Wu = view(Wus, :, :, t)
                 Wuv = vec(Wu)
                 @views Wuv .= mul!(Wuv, W_list[t], vec(ubar[:,:,t+1])) .- vec(ubar[:,:,t])
 
-	            @views _p3 .+= sigmas[3] .* Wu
+                @views _p3 .+= sigmas[3] .* Wu
                 proj_dual_l1!(_p3, w_flow)
                 p3_adj = view(p3_adjoint[:,:,t], :)
 
                 mul!(p3_adj, W_list[t]', vec(_p3))
-				@views p_adjoint[:,:,t+1] .+= p3_adjoint[:,:,t]
+                # @views p_adjoint[:,:,t+1] .+= p3_adjoint[:,:,t] # race condition
                 @views p_adjoint[:,:,t] .-= _p3
             end
         end
+
+        # add p3_adjoint to prevent race condition
+        @views p_adjoint[:,:,2:end] .+= p3_adjoint[:,:,1:end-1]
 
         # primal update
         u .-= tau * p_adjoint
@@ -130,12 +132,12 @@ function _recon2d_tv_primaldual_flow(As,A_norm,W_list,W_norm,u0s,bs,w_tv,w_flow,
         # acceleration
         ubar .= 2*u .- u_prev
 
-		if it % 50 == 0
-			#du = u_prev - u
-        	primal_gap = sum(abs.(-p_adjoint+p_adjoint_prev + (u_prev-u)/tau)) / length(p_adjoint)
-        	#@info "primal gap:" primal_gap
-			@info it primal_gap
-		end
+        if it % 50 == 0
+            #du = u_prev - u
+            primal_gap = sum(abs.(-p_adjoint+p_adjoint_prev + (u_prev-u)/tau)) / length(p_adjoint)
+            #@info "primal gap:" primal_gap
+            @info it primal_gap
+        end
     end
     return u
 end
