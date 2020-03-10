@@ -15,6 +15,7 @@ using XfromProjections
 using SparseArrays
 using PyPlot
 
+include("./edge_from_proj.jl")
 # img = imread("test_data/shepplogan512.png")[:,:,1]
 
 img = zeros(100, 100)
