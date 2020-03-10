@@ -101,7 +101,7 @@ function _recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, nite
     p_adjoint = zeros(H, W, nslice)
     du = similar(p2)
     divu = similar(p2)
-    temp = zeros(size(A, 1))
+    temp = zeros(size(A, 1), nslice)
 
     u_temp = similar(u)
 
@@ -110,16 +110,14 @@ function _recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, nite
         
         # dual update
         Threads.@threads  for slice=1:nslice
-            bb = view(b, :, slice)
             ubar_slice = view(ubar, :, :, slice)
-            p1_slice = view(p1, :, slice)
             p_adjoint_slice = vec(view(p_adjoint, :, :, slice))
             
             # for l2 norm
-            temp .= mul!(temp, A, vec(ubar_slice)) .- bb
-            p1_slice .= (p1_slice .+ sigmas[1] .* temp) ./ (sigmas[1] + 1.0)
+            @views temp[:, slice] .= mul!(temp[:, slice], A, vec(ubar_slice)) .- b[:, slice]
+            @views p1[:, slice] .= (p1[:, slice] .+ sigmas[1] .* temp) ./ (sigmas[1] + 1.0)
 
-            mul!(p_adjoint_slice, At, p1_slice)
+            @views mul!(p_adjoint_slice, At, p1[:, slice])
         end
 
         # p2: 3d gradient and divergence
