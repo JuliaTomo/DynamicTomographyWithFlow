@@ -1,4 +1,4 @@
-# Welcome to XfromProjections.jl (under development)
+# Welcome to XfromProjections.jl
 
 XfromProjections aims to provide different solutions X from tomographic projection data. X can be not only images but also shapes such as level-set (not supported yet). XfromProjections takes care of the performance by using multi-threading. Currently, XfromProjections only supports the reconstruction of 2D images for 2D paralleal or fan beam and 3D images (stack of 2D images) for 3D paralleal beam.
 
