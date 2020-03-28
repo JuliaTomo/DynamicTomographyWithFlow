@@ -5,7 +5,6 @@ include("../src/iterative/util_convexopt.jl")
 include("../src/iterative/tnv_primaldual.jl")
 using LinearAlgebra
 
-
 # img = imread("test_data/shepplogan512.png")[:,:,1]
 # H, W = 128, 128
 # img = imresize(img, H, W)

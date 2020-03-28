@@ -101,7 +101,7 @@ function _recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, nite
     p_adjoint = zeros(H, W, nslice)
     du = similar(p2)
     divu = similar(p2)
-    temp = zeros(size(A, 1), nslice)
+    temp_residual = zeros(size(A, 1), nslice)
 
     u_temp = similar(u)
 
@@ -114,8 +114,8 @@ function _recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, nite
             p_adjoint_slice = vec(view(p_adjoint, :, :, slice))
             
             # for l2 norm
-            @views temp[:, slice] .= mul!(temp[:, slice], A, vec(ubar_slice)) .- b[:, slice]
-            @views p1[:, slice] .= (p1[:, slice] .+ sigmas[1] .* temp[:, slice]) ./ (sigmas[1] + 1.0)
+            @views temp_residual[:, slice] .= mul!(temp_residual[:, slice], A, vec(ubar_slice)) .- b[:, slice]
+            @views p1[:, slice] .= (p1[:, slice] .+ sigmas[1] .* temp_residual[:, slice]) ./ (sigmas[1] + 1.0)
 
             @views mul!(p_adjoint_slice, At, p1[:, slice])
         end
@@ -138,9 +138,10 @@ function _recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, nite
         # compute primal energy (optional)
         if it % 10 == 0
             # energy = sum(data1.^2) / length(data1) + sum(abs.(data2)) / length(data2)
-            println("iter: $it, max: $(maximum(u)), $(maximum(p1))")
+            println("iter: $it, residua: $(sum(temp_residual .^ 2 ) / length(temp_residual))")
         end
     end
+    # residual = sum(temp_residual .^ 2 ) / length(temp_residual)
     return u
 end
 
