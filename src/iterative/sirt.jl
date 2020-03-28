@@ -50,7 +50,7 @@ function recon2d_sirt!(u0::Array{T, 2}, A::SparseMatrixCSC{T,Int}, b0::Array{T, 
         end
     end
 
-    return u
+    residual = sum( r .^ 2 )  / length(r)
 end
 
 
@@ -119,8 +119,7 @@ function recon2d_slices_sirt!(u::Array{T, 3}, A::SparseMatrixCSC{T,Int}, b_::Arr
         end
     end
 
-    println("@ reconstruction done. min: $(minimum(u)), max: $(maximum(u))")
-    return u
+    residual = (sum(temp .^ 2) / length(temp))
 end
 
 # temp .= R_mx1 .* (b .- mul!(temp, A, u_view ) )
