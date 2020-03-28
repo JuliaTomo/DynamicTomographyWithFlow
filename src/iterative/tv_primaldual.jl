@@ -115,7 +115,7 @@ function _recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, nite
             
             # for l2 norm
             @views temp[:, slice] .= mul!(temp[:, slice], A, vec(ubar_slice)) .- b[:, slice]
-            @views p1[:, slice] .= (p1[:, slice] .+ sigmas[1] .* temp) ./ (sigmas[1] + 1.0)
+            @views p1[:, slice] .= (p1[:, slice] .+ sigmas[1] .* temp[:, slice]) ./ (sigmas[1] + 1.0)
 
             @views mul!(p_adjoint_slice, At, p1[:, slice])
         end
