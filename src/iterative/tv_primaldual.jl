@@ -123,7 +123,6 @@ function _recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, nite
         # p2: 3d gradient and divergence
         grad!(du, ubar)
         p2 .+= sigmas[2] .* du
-        temp_u = view(du)
         util_convexopt.proj_dual_iso!(p2, u_temp, w_tv)
         # util_convexopt.proj_dual_l1!(p2, w_tv) # anisotropic TV
 
