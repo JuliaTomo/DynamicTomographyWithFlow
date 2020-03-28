@@ -141,8 +141,8 @@ function _recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, nite
             println("iter: $it, residua: $(sum(temp_residual .^ 2 ) / length(temp_residual))")
         end
     end
-    # residual = sum(temp_residual .^ 2 ) / length(temp_residual)
-    return u
+    residual = sum(temp_residual .^ 2 ) / length(temp_residual)
+    return residual
 end
 
 """
@@ -172,5 +172,5 @@ function recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b::Array{T, 3}, niter:
     tau = c / sum(ops_norm)
     println("@ step sizes sigmas: ", sigmas, ", tau: $tau")
     
-    _recon2d_slices_tv_primaldual!(u, A, b, niter, w_tv, sigmas, tau)
+    residual = _recon2d_slices_tv_primaldual!(u, A, b, niter, w_tv, sigmas, tau)
 end
