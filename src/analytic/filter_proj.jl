@@ -1,5 +1,6 @@
 using FFTW
 using DSP
+using LinearAlgebra
 
 "make fourier filter size_padded is power of 2"
 function make_filter(sz, filter_type="ramlak")
