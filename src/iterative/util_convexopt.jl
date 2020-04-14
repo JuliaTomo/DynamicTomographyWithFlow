@@ -4,20 +4,20 @@ using LinearAlgebra
 export LinOp, compute_opnorm, proj_l1!, grad!, div!, prox_nuclear!
 
 # See http://www.ima.umn.edu/materials/2019-2020/SW10.14-18.19/28302/talk.pdf
-struct LinOp
-    forward::Function
-    adjoint::Function
-end
-Base.:(*)(A::LinOp, x) = A.forward(x) # for A*x
-Base.adjoint(A::LinOp) = LinOp(A.adjoint, A.forward) # for A'
+# struct LinOp
+#     forward::Function
+#     adjoint::Function
+# end
+# Base.:(*)(A::LinOp, x) = A.forward(x) # for A*x
+# Base.adjoint(A::LinOp) = LinOp(A.adjoint, A.forward) # for A'
 
-D_  = f -> grad(f)
-Dt_ = u -> -div(u)
+# D_  = f -> grad(f)
+# Dt_ = u -> -div(u)
 
-"D: gradient operator"
-D = LinOp(D_, Dt_)
+# "D: gradient operator"
+# D = LinOp(D_, Dt_)
 
-export D
+# export D
 
 "Compute opeartor norm based on the Power method"
 function compute_opnorm(A, niter=3)
