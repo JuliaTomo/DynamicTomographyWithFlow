@@ -53,7 +53,7 @@ function _recon2d_tv_primaldual!(u, A, b0, niter, w_tv, sigmas, tau)
 end
 
 """
-    recon2d_tv_primaldual!(u::Array{T, 2}, A, b, niter::Int, w_tv::T, c=1.0)
+    recon2d_tv_primaldual!(u::Array{T, 2}, A, b, niter::Int, w_tv::T, c=10.0)
 
 Reconstruct a 2d image by TV-L2 model using Primal Dual optimization method
 
@@ -65,7 +65,7 @@ niter: number of iterations
 w_tv: weight for TV term
 c : See 61 page in 2016_Chambolle,Pock_An_introduction_to_continuous_optimization_for_imagingActa_Numerica
 """
-function recon2d_tv_primaldual!(u::Array{T, 2}, A, b, niter::Int, w_tv::T, c=1.0) where {T <: AbstractFloat}
+function recon2d_tv_primaldual!(u::Array{T, 2}, A, b, niter::Int, w_tv::T, c=10.0) where {T <: AbstractFloat}
     @time op_A_norm = util_convexopt.compute_opnorm(A)
     println("@ opnorm of forward projection operator: $op_A_norm")
     ops_norm = [op_A_norm, sqrt(8)]
@@ -101,7 +101,7 @@ function _recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, nite
     p_adjoint = zeros(H, W, nslice)
     du = similar(p2)
     divu = similar(p2)
-    temp = zeros(size(A, 1), nslice)
+    temp_residual = zeros(size(A, 1), nslice)
 
     u_temp = similar(u)
 
@@ -114,8 +114,8 @@ function _recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, nite
             p_adjoint_slice = vec(view(p_adjoint, :, :, slice))
             
             # for l2 norm
-            @views temp[:, slice] .= mul!(temp[:, slice], A, vec(ubar_slice)) .- b[:, slice]
-            @views p1[:, slice] .= (p1[:, slice] .+ sigmas[1] .* temp) ./ (sigmas[1] + 1.0)
+            @views temp_residual[:, slice] .= mul!(temp_residual[:, slice], A, vec(ubar_slice)) .- b[:, slice]
+            @views p1[:, slice] .= (p1[:, slice] .+ sigmas[1] .* temp_residual[:, slice]) ./ (sigmas[1] + 1.0)
 
             @views mul!(p_adjoint_slice, At, p1[:, slice])
         end
@@ -123,7 +123,6 @@ function _recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, nite
         # p2: 3d gradient and divergence
         grad!(du, ubar)
         p2 .+= sigmas[2] .* du
-        temp_u = view(du)
         util_convexopt.proj_dual_iso!(p2, u_temp, w_tv)
         # util_convexopt.proj_dual_l1!(p2, w_tv) # anisotropic TV
 
@@ -139,10 +138,11 @@ function _recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, nite
         # compute primal energy (optional)
         if it % 10 == 0
             # energy = sum(data1.^2) / length(data1) + sum(abs.(data2)) / length(data2)
-            println("iter: $it, max: $(maximum(u)), $(maximum(p1))")
+            println("iter: $it, residua: $(sum(temp_residual .^ 2 ) / length(temp_residual))")
         end
     end
-    return u
+    residual = sum(temp_residual .^ 2 ) / length(temp_residual)
+    return residual
 end
 
 """
@@ -158,7 +158,7 @@ Reconstruct a 2d image by TV-L2 model using Primal Dual optimization method
 - w_tv: weight for TV term
 - c : See 61 page in 2016_Chambolle,Pock_An_introduction_to_continuous_optimization_for_imagingActa_Numerica
 """
-function recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b::Array{T, 3}, niter::Int, w_tv::T, c=1.0) where {T <: AbstractFloat}
+function recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b::Array{T, 3}, niter::Int, w_tv::T, c=10.0) where {T <: AbstractFloat}
     @time op_A_norm = util_convexopt.compute_opnorm(A)
     println("@ opnorm of forward projection operator: $op_A_norm")
     ops_norm = [op_A_norm, sqrt(8)]
@@ -172,5 +172,5 @@ function recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b::Array{T, 3}, niter:
     tau = c / sum(ops_norm)
     println("@ step sizes sigmas: ", sigmas, ", tau: $tau")
     
-    _recon2d_slices_tv_primaldual!(u, A, b, niter, w_tv, sigmas, tau)
+    residual = _recon2d_slices_tv_primaldual!(u, A, b, niter, w_tv, sigmas, tau)
 end

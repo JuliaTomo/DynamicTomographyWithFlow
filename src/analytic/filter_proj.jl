@@ -1,5 +1,6 @@
 using FFTW
 using DSP
+using LinearAlgebra
 
 "make fourier filter size_padded is power of 2"
 function make_filter(sz, filter_type="ramlak")
@@ -106,7 +107,7 @@ Perform backprojection slice by slice
 """
 function bp_slices(p_, A, H, W, scaling=true)
     nangles, nslice, detcount = size(p_)
-    At = sparse(A')
+    At = A'
 
     nslice = size(p_, 2)
     img = zeros(H*W, nslice)

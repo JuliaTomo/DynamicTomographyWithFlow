@@ -1,6 +1,6 @@
 # Welcome to XfromProjections.jl
 
-XfromProjections aims to provide different solutions X from tomographic projection data. X can be not only images but also shapes such as level-set (not supported yet). XfromProjections takes care of the performance by using multi-threading. Currently, XfromProjections supports 2D image reconstructions for paralleal and fan beam. For 3D, we only support stack of 2D images slice by slice for paralleal beam.
+XfromProjections aims to provide different solutions X from tomographic projection data, where X can be images but also shapes such as level-set (not supported yet). XfromProjections takes advantage of multi-threading. Currently, we support 2D image reconstructions for paralleal and fan beam. For 3D, we only support a stack of 2D images slice by slice for paralleal beam.
 
 XfromProjectiions depends on [TomoForward](https://github.com/JuliaTomo/TomoForward.jl) package for forward operators of images.
 
