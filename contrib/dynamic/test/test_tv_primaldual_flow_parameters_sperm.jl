@@ -38,12 +38,12 @@ u0s = zeros(H,W,size(frames)[3])
 
 As  = map(t -> radon_operator(H,W, detcount, angles),1:size(u0s)[3])
 cwd = @__DIR__
-path = normpath(joinpath(@__DIR__, "results"))
+path = normpath(joinpath(@__DIR__, "result"))
 !isdir(path) && mkdir(path)
 cd(path)
 
 c=10.0
-w_tvs = [0.0001,0.001,0.01,0.05,0.1,0.2,0.3,0.5]
+w_tvs = [0.0001,0.001,0.01,0.05,0.1,0.2,0.3,0.5]#
 w_flows = [0.0001,0.001,0.01,0.05,0.1,0.2,0.3,0.5]
 p = Progress(size(w_tvs,1)*size(w_flows,1),60, "Testing parameters")
 
