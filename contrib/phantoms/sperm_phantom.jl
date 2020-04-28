@@ -58,10 +58,9 @@ function closed_curve_to_binary_mat(curve::Array{Float64}, xs::Array{Float64}, y
 end
 
 #use smaller grid than for reconstruction to avoid inverse crime
-function get_sperm_phantom(nr_frames::Int64; grid_size=0.01)
+function get_sperm_phantom(nr_frames::Int64; grid_size=0.1)
     cwd = @__DIR__
-    path = normpath(joinpath(@__DIR__, "phantoms"))
-    cd(path)
+    cd(cwd)
     #data = readdlm("hyperactive_sperm_trajectory.xyz", '\t')
     data = readdlm("trajectory.xyz", '\t')
     #remove first and last column which artime_sequence[:,1,1]e not relevant
@@ -79,30 +78,30 @@ function get_sperm_phantom(nr_frames::Int64; grid_size=0.01)
     dims = 2
     points = 38#40
 
-    #convert to time sequence (last dimension is frames)
-    time_sequence = zeros(points,dims,frames)
-    map(t -> time_sequence[:,:,t] = data[(t-1)*points+1:(t-1)*points+points,:], 1:frames)
+    #convert to time sequence (last dimension is frames) - add "head" at 0,0
+    time_sequence = zeros(points+1,dims,nr_frames)
+    map(t -> time_sequence[2:end,:,t] = data[(t-1)*points+1:(t-1)*points+points,:], 1:nr_frames)
 
     p = Progress(5,1, "Making phantom")
     r(s) = 1.0
     #Pick every 10th frame to match sampling at synkrotron
-    path = normpath(joinpath(@__DIR__, "result"))
     grid = collect(-38.0:grid_size:38.0)
-    result = zeros(length(grid),length(grid),nr_frames)
-    cd(path)
+    images = zeros(length(grid),length(grid),nr_frames)
+    tracks = Array{Float64,2}[]
     for t=1:nr_frames
         #Remove all zero rows (missing data points)
         non_zeros = filter(i ->  any(v-> v !== 0.0, time_sequence[i,:,t]) ,1:points)
-        pl = plot( aspect_ratio=:equal,framestyle=:none, legend=false)
+        prepend!(non_zeros,1)
+        push!(tracks, (time_sequence[non_zeros,:,t]))
+
         #determine outline from skeleton
         outline, normals = get_outline(reshape(time_sequence[non_zeros,:,t], (length(non_zeros),2)), r)
         #close the curve
         outline = cat(outline, outline[1,:]', dims=1)
         #convert to binary image
-        result[:,:,t] = closed_curve_to_binary_mat(outline,grid,grid)
+        images[:,:,t] = closed_curve_to_binary_mat(outline,grid,grid)
         next!(p)
     end
-
-    return result
     cd(cwd)
+    return images, tracks
 end

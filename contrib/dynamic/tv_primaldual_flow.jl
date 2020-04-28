@@ -169,6 +169,7 @@ function recon2d_tv_primaldual_flow(A_list, bs::Array{R, 2}, u0s::Array{R, 3}, n
     p2 = zeros(height, width, 2,frames)
     p3 = zeros(height, width, frames)
     for i=1:niter1
+        @info i
         u_prev = u
         v_prev = v
         W_list = mapslices(f -> compute_warping_operator(f), v,dims=[1,2,3])

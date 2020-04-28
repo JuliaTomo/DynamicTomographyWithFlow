@@ -5,9 +5,9 @@ using XfromProjections
 using StaticArrays
 using PyCall
 using Logging
-include("./simple_phantoms.jl")
-include("./tv_primaldual_flow.jl")
-include("./optical_flow.jl")
+include("../../phantoms/simple_phantoms.jl")
+include("../tv_primaldual_flow.jl")
+include("../optical_flow.jl")
 
 replace_nan(v) = map(x -> isnan(x) ? zero(x) : x, v)
 

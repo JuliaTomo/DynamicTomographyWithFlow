@@ -6,12 +6,11 @@ using StaticArrays
 using PyCall
 using Logging
 using Printf
-using ProgressMeter
 
-include("./simple_phantoms.jl")
-include("./tv_primaldual_flow.jl")
-include("./optical_flow.jl")
-include("./sperm_phantom.jl")
+include("../../phantoms/simple_phantoms.jl")
+include("../tv_primaldual_flow.jl")
+include("../optical_flow.jl")
+include("../../phantoms/sperm_phantom.jl")
 
 H,W = 609, 609
 function radon_operator(height, width, detcount, angles)
@@ -22,7 +21,7 @@ end
 
 angles = [0.0,π/3,2*π/3]
 #Create phantom at smaller gridsize than reconstruction
-frames = get_sperm_phantom(2,grid_size=0.1)
+frames, tracks = get_sperm_phantom(2,grid_size=0.1)
 detcount = Int(floor(H*1.4))
 #match size of input image (generating data)
 As = map(t -> radon_operator(size(frames[:,:,1],1),size(frames[:,:,1],2),detcount, angles),1:size(frames)[3])
