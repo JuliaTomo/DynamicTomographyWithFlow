@@ -26,6 +26,5 @@ end
 u = zeros(size(img))
 
 include("pals.jl")
-recon2d_slices_pals!(u, A, p, 50, 4)
+recon2d_slices_tvrdart!(u, A, p, 50, 4)
 
-using PyPlot

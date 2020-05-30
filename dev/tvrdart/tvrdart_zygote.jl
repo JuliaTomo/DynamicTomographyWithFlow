@@ -1,30 +1,3 @@
-function _recon2d_slices_tvrdart!(u, A, b0, niter, w_tv, sigmas, tau)
-    At = sparse(A')
-    H, W = size(u)
-    
-    b = vec(b0)
-
-    
-    return u
-end
-
-function obj_param(A, p, u, w_tv, epsilon)
-    
-end
-
-function der_param()
-
-end
-
-function _estimate_param(A, p, u, param0, w_tv, epsilon)
-    obj = obj_param(A, p, u, w_tv, epsilon)
-    objder = der_param()
-    # residual = minimize()..
-
-    param = res.x
-    return param
-end
-
 """
     recon2d_slices_tvrdart!(u::Array{T, 2}, A, b, niter::Int, w_tv::T, c=10.0)
 
@@ -68,7 +41,3 @@ function recon2d_slices_tvrdart!(u::Array{T, 3}, A, b, niter::Int, w_tv::T, nmat
     
     return _recon2d_slices_tvrdart!(u, A, b, niter, w_tv, param)
 end
-
-def gv2param(gv,K):
-    param = np.hstack((gv[1:],K))
-    return param;

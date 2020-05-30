@@ -1,11 +1,34 @@
 using .util_convexopt
 
+"project a vector 'u' to l1 unit ball "
+function project_l1_ball!(u)
+    sum = Inf
+    shrink = 0.0
+    while (sum > 1.0)
+        sum = 0.0
+        cnt = 0
+
+        for i=1:length(u)
+            u[i] = max(u[i] - shrink, 0.0)
+            sum += abs(u[i])
+            if u[i] != 0.0
+                cnt += 1
+            end
+        end
+        if cnt > 0
+            shrink = (sum - 1.0) / cnt
+        else
+            break
+        end
+    end
+end
+
 """
     function prox_nuclear!(y, x, stepsize)
 
 Proximal operator of nuclear norm to x. y=prox_{s f}(x)
 """
-function prox_nuclear_wo_svd!(y, x, stepsize)
+function prox_nuclear_wo_svd!(y, x, stepsize, is_S1=true)
     H, W, M, C = size(x) # Dim : 2 for 2D, 3 for 3D (C >= 2)
     x_HxWxCx2 = PermutedDimsArray(x, [1,2,4,3])
     y_HxWxCx2 = PermutedDimsArray(y, [1,2,4,3])
@@ -38,8 +61,8 @@ function prox_nuclear_wo_svd!(y, x, stepsize)
         
         eig1 = max(  (T / 2.0) + det , 0.0 )
         eig2 = max(  (T / 2.0) - det , 0.0 )
-        sigma1 = sqrt(eig1)
-        sigma2 = sqrt(eig2)
+        σ1 = sqrt(eig1)
+        σ2 = sqrt(eig2)
 
         if abs(BB2) > EPS
             v0 = BB2
@@ -67,13 +90,27 @@ function prox_nuclear_wo_svd!(y, x, stepsize)
             end
         end
 
-        ss1 = max(sigma1 - stepsize, 0.0)
-        ss2 = max(sigma2 - stepsize, 0.0)
-        if sigma1 > EPS
-            ss1 /= sigma1
+        if is_S1
+            # (S1, l1) Eq. (11) in IPOL paper
+            ss1 = max(σ1 - stepsize, 0.0)
+            ss2 = max(σ2 - stepsize, 0.0)
+        else
+            # (S∞, l1) prox to l∞
+            # l∞(x) = x - λ prox_(*/λ) (x / λ)
+            # proj_dual_l1!(σ1/sigma, 1.0/sigma)
+            # proj_dual_l1: x ./= max.(1.0, abs.(x) / weight)
+            pp = [σ1 / stepsize, σ2 / stepsize]
+            proj_l1_ball!(pp)
+            
+            ss1 = σ1 - stepsize * pp[1]
+            ss2 = σ2 - stepsize * pp[2]
         end
-        if sigma2 > EPS
-            ss2 /= sigma2
+
+        if σ1 > EPS
+            ss1 /= σ1
+        end
+        if σ2 > EPS
+            ss2 /= σ2
         end
 
         t1 = ss1 * V1 * V1 + ss2 * V2 * V2
@@ -137,8 +174,8 @@ function _recon2d_tnv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
     
     data1 = similar(b)
 
-    invsigma11 = 1. / (sigmas[1] / w_data + 1.0) # l2 data, (Handa Sec 8.1)
-    invsigma2 = 1. / sigmas[2]
+    invσ11 = 1. / (sigmas[1] / w_data + 1.0) # l2 data, (Handa Sec 8.1)
+    invσ2 = 1. / sigmas[2]
 
     for it=1:niter
         u_prev .= u
@@ -151,7 +188,7 @@ function _recon2d_tnv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
 
             # dual update: data fidelity
             data1_c .= mul!(data1_c, A, vec(ubar_c)) .- view(b, :, c)
-            p1_c .= (p1_c .+ sigmas[1] .* data1_c) .* invsigma11
+            p1_c .= (p1_c .+ sigmas[1] .* data1_c) .* invσ11
             mul!(p_adjoint_c, At, p1_c)
             
             # compute gradient for TNV later
@@ -160,9 +197,9 @@ function _recon2d_tnv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
         end
 
         # projection onto dual of (S1,l1)
-        p2_temp .= du .+ invsigma2 .* p2
-        prox_nuclear_wo_svd!(g, p2_temp, invsigma2)
-        # prox_nuclear!(g, p2_temp, invsigma2)
+        p2_temp .= du .+ invσ2 .* p2
+        prox_nuclear_wo_svd!(g, p2_temp, invσ2)
+        # prox_nuclear!(g, p2_temp, invσ2)
         p2 .+= sigmas[2] .* ( du .- g )
 
         Threads.@threads for c=1:C
