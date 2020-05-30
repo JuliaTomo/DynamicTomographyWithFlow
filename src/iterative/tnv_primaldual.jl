@@ -247,6 +247,8 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
             prox_nuclear_wo_svd!(g, p2_temp, invσ2, false)
         elseif type == "l∞11" # strong coupling
             prox_l∞11!(g, p2_temp, invσ2)
+        else
+            error("not supported type")
         end
         # prox_nuclear!(g, p2_temp, invσ2)
         p2 .+= sigmas[2] .* ( du .- g )
