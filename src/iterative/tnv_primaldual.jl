@@ -1,7 +1,7 @@
 using .util_convexopt
 
 "project a vector 'u' to l1 unit ball "
-function project_l1_ball!(u)
+function proj_l1_ball!(u::Array{T, 1}) where {T<:AbstractFloat}
     sum = Inf
     shrink = 0.0
     while (sum > 1.0)
@@ -22,11 +22,14 @@ function project_l1_ball!(u)
         end
     end
 end
-
+ 
 """
     function prox_nuclear!(y, x, stepsize)
 
 Proximal operator of nuclear norm to x. y=prox_{s f}(x)
+
+is_S1=true : (S1, l1) norm for TNV
+is_S1=false: (S∞, l1)
 """
 function prox_nuclear_wo_svd!(y, x, stepsize, is_S1=true)
     H, W, M, C = size(x) # Dim : 2 for 2D, 3 for 3D (C >= 2)
@@ -126,6 +129,45 @@ function prox_nuclear_wo_svd!(y, x, stepsize, is_S1=true)
     return y
 end
 
+"""
+Example:
+x = rand(20, 30, 2, 10);
+y = zeros(20, 30, 2, 10);
+prox_l∞11!(y, x, 0.01);
+"""
+function prox_l∞11!(y, x, stepsize)
+    H, W, M, C = size(x) # Dim : 2 for 2D, 3 for 3D (C >= 2)
+    x_HxWxCx2 = PermutedDimsArray(x, [1,2,4,3])
+    y_HxWxCx2 = PermutedDimsArray(y, [1,2,4,3])
+    x_ = reshape(x_HxWxCx2, H*W, C, 2)
+    y_ = reshape(y_HxWxCx2, H*W, C, 2)
+
+    # x_svd = mapslices(svd!, x_, dims=[2,3])
+    # x_svd = dropdims(x_svd_, dims=4)
+    Threads.@threads for hw=1:H*W
+        x_hw = view(x_, hw, :, :) # [C x 2]
+        y_hw = view(y_, hw, :, :)
+
+        pp1 = zeros(C)
+        pp2 = zeros(C)
+        for c=1:C
+            pp1[c] = abs(x_hw[c,1]) / stepsize
+            pp2[c] = abs(x_hw[c,2]) / stepsize
+        end
+
+        proj_l1_ball!(pp1)
+        proj_l1_ball!(pp2)
+
+        for c=1:C
+            x1 = x_hw[c,1]
+            x2 = x_hw[c,2]
+
+            y_hw[c,1] = x1 - stepsize * sign(x1) * pp1[c]
+            y_hw[c,2] = x2 - stepsize * sign(x2) * pp2[c]
+        end
+    end
+end
+
 function grad2d!(du, u) where {T<:AbstractFloat}
     du1, du2 = view(du, :, :, 1), view(du, :, :, 2)
     du1 .= circshift!(du1, u, [0, -1]) .- u
@@ -152,7 +194,7 @@ function div2d!(divp, p) where {T<:AbstractFloat}
     return p1_x
 end
 
-function _recon2d_tnv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_data, sigmas, tau) where {T<:AbstractFloat}
+function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_data, sigmas, tau, type) where {T<:AbstractFloat}
     At = A'
     H, W, C = size(u)
     
@@ -198,7 +240,14 @@ function _recon2d_tnv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
 
         # projection onto dual of (S1,l1)
         p2_temp .= du .+ invσ2 .* p2
-        prox_nuclear_wo_svd!(g, p2_temp, invσ2)
+
+        if type == "tnv" || type == "S1l1"
+            prox_nuclear_wo_svd!(g, p2_temp, invσ2)
+        elseif type == "S∞l1"
+            prox_nuclear_wo_svd!(g, p2_temp, invσ2, false)
+        elseif type == "l∞11" # strong coupling
+            prox_l∞11!(g, p2_temp, invσ2)
+        end
         # prox_nuclear!(g, p2_temp, invσ2)
         p2 .+= sigmas[2] .* ( du .- g )
 
@@ -223,19 +272,23 @@ function _recon2d_tnv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
 end
 
 """
-    recon2d_tv_primaldual!(u::Array{T, 2}, A, b::Array{T, 2}, niter::Int, w_tv::T, c=1.0)
+    recon2d_ctv_primaldual!(u::Array{T, 2}, A, b::Array{T, 2}, niter::Int, w_tv::T, type="tnv", c=1.0)
 
-Reconstruct a 2d image by TV-L2 model using Primal Dual optimization method
+Reconstruct a 2d image by Collaborative TV using Primal Dual optimization optimizer
 
 # Args
 u : Initial guess of images
 A : Forward opeartor
 b : Projection data 
-niter: number of iterations
-w_tv: weight for TV term
+niter : number of iterations
+w_tv : weight for TV term
+type (string) : tnv, S∞l1, l∞11
 c : See 61 page in 2016_Chambolle,Pock_An_introduction_to_continuous_optimization_for_imagingActa_Numerica
+
+For Collaborative TV, refer to:
+Duran,Moeller,Sbert,Cremers_On_the_Implementation_of_Collaborative_TV_Regularization_-_Application_toImage_Processing_On_Line
 """
-function recon2d_tnv_primaldual!(u::Array{T, 3}, A, b::Array{T, 3}, niter::Int, w_data::T, c=1.0) where {T <: AbstractFloat}
+function recon2d_ctv_primaldual!(u::Array{T, 3}, A, b::Array{T, 3}, niter::Int, w_data::T, type="tnv", c=10.0) where {T <: AbstractFloat}
     if size(u, 3) != size(b, 3)
         error("The channel size of u and b should match.")
     end
@@ -252,6 +305,6 @@ function recon2d_tnv_primaldual!(u::Array{T, 3}, A, b::Array{T, 3}, niter::Int, 
     tau = c / sum(ops_norm)
     println("@ step sizes sigmas: ", sigmas, ", tau: $tau")
     
-    return _recon2d_tnv_primaldual!(u, A, b, niter, w_data, sigmas, tau)
+    return _recon2d_ctv_primaldual!(u, A, b, niter, w_data, sigmas, tau, type)
 end
 

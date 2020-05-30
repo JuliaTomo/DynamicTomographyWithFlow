@@ -39,7 +39,7 @@ p = cat(p1, p2, dims=3)
 
 niter=100
 w_tnv=0.5
-recon2d_tnv_primaldual!(u, A, p, niter, w_tnv)
+recon2d_ctv_primaldual!(u, A, p, niter, w_tnv, "tnv")
 
 using PyPlot
 imshow(u[:,:,1])

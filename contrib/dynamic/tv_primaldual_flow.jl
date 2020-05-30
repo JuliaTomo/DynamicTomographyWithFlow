@@ -157,7 +157,7 @@ W_flow: weight for flow term
 c : See 61 page in 2016_Chambolle,Pock_An_introduction_to_continuous_optimization_for_imagingActa_Numerica
 
 """
-function recon2d_tv_primaldual_flow(A_list, bs::Array{R, 2}, u0s::Array{R, 3}, niter1::Int, niter2::Int, w_tv::R, w_flow::R, c=1.0) where {R <: AbstractFloat}
+function recon2d_tv_primaldual_flow(A_list, bs::Array{R, 2}, u0s::Array{R, 3}, niter1::Int, niter2::Int, w_tv::R, w_flow::R, c=10.0) where {R <: AbstractFloat}
 
     height,width,frames = size(u0s)
     v = zeros(height, width, 2, frames)
