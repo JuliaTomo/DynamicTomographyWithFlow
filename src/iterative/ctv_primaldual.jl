@@ -197,6 +197,10 @@ end
 function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_data, sigmas, tau, type) where {T<:AbstractFloat}
     At = A'
     H, W, C = size(u)
+
+    # normalize the data fidelity with respect.
+    # we consider mean(residual) instead of sum
+    w_data = w_data / length(b0)
     
     b = reshape(b0, (size(b0, 1)*size(b0, 2), C))
     # b = vec(b0)
