@@ -292,10 +292,11 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
         # res_dual = p1_prev .- p1
         if res_primal < ϵ
             @info "$it Stopping condition is met. $res_primal"
+            return it
         end
     end
 
-    return u
+    return (niter)
 end
 
 """
