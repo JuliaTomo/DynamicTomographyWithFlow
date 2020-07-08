@@ -281,19 +281,20 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
         # acceleration
         ubar .= 2 .* u .- u_prev
 
-        # compute primal energy (optional)
-        if it % 20 == 0
-            energy = sum(data1.^2) / C
-            println("$it, approx. data term: $energy")
-        end
-
         # primal residual
-        res_primal = abs.((u_prev .- u) / tau .+ (p_adjoint_prev .- p_adjoint)) / length(u)
+        res_primal = sum(abs.((u_prev .- u) / tau .+ (p_adjoint_prev .- p_adjoint))) / length(u)
         # res_dual = p1_prev .- p1
         if res_primal < ϵ
             @info "$it Stopping condition is met. $res_primal"
             return it
         end
+
+        # compute primal energy (optional)
+        if it % 20 == 0
+            energy = sum(data1.^2) / C
+            println("$it, approx. data term: $energy, primal_res: $res_primal")
+        end
+
     end
 
     return (niter)
@@ -316,7 +317,7 @@ c : See 61 page in 2016_Chambolle,Pock_An_introduction_to_continuous_optimizatio
 For Collaborative TV, refer to:
 Duran,Moeller,Sbert,Cremers_On_the_Implementation_of_Collaborative_TV_Regularization_-_Application_toImage_Processing_On_Line
 """
-function recon2d_ctv_primaldual!(u::Array{T, 3}, A, b::Array{T, 3}, niter::Int, w_data, type="tnv", c=10.0, ϵ=1e-6) where {T <: AbstractFloat}
+function recon2d_ctv_primaldual!(u::Array{T, 3}, A, b::Array{T, 3}, niter::Int, w_data, type="tnv", ϵ=1e-6, c=10.0) where {T <: AbstractFloat}
     if size(u, 3) != size(b, 3)
         error("The channel size of u and b should match.")
     end
