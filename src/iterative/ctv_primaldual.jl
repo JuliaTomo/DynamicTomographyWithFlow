@@ -284,7 +284,7 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
         # primal residual
         res_primal = sum(abs.((u_prev .- u) / tau .+ (p_adjoint_prev .- p_adjoint))) / length(u)
         # res_dual = p1_prev .- p1
-        if res_primal < ϵ
+        if res_primal < ϵ && it > 1
             @info "$it Stopping condition is met. $res_primal"
             return it
         end
