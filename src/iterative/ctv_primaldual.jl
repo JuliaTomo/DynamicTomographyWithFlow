@@ -290,13 +290,13 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
 
         # compute primal energy (optional)
         if it % 20 == 0
-            energy = sum(data1.^2) / C
+            energy = sum(data1.^2) /  length(data1)
             println("$it, approx. data term: $energy, primal_res: $res_primal")
         end
 
     end
 
-    return (niter)
+    return (u, niter)
 end
 
 """
