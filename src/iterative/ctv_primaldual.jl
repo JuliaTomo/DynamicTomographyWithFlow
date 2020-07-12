@@ -224,13 +224,13 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
     invσ2 = 1. / sigmas[2]
 
     # variables for computinig residuals
-    du_prev = similar(u)
+    # du_prev = similar(u)
     p_adjoint_prev = similar(p_adjoint)
     # p1_prev = similar(p1)
     # p2_prev = similar(p2)
 
     for it=1:niter
-        if it > 1 && it % nverbose == 0
+        if it % nverbose == 0
             copy!(p_adjoint_prev, p_adjoint)
         end
 
@@ -286,13 +286,13 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
             # compute primal energy (optional)
             res_primal = sum(abs.((u_prev .- u) / tau .+ (p_adjoint_prev .- p_adjoint))) / length(u)
             # res_dual = p1_prev .- p1
-            if res_primal < ϵ
+            if res_primal < ϵ && it > 1
                 @info "$it Stopping condition is met. $res_primal"
                 return it
             end
 
             energy = sum(data1.^2) /  length(data1)
-            println("$it, approx. data term: $energy, primal_res: $res_primal")
+            println("$it, data term: $energy, primal_res: $res_primal")
         end
 
     end
