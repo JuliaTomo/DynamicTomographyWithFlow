@@ -229,8 +229,10 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
     # p1_prev = similar(p1)
     # p2_prev = similar(p2)
 
+    nverbose = 20
+
     for it=1:niter
-        if it > 1
+        if it > 1 && it % nverbose == 0
             copy!(p_adjoint_prev, p_adjoint)
         end
 
@@ -279,17 +281,18 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
         ubar .= 2 .* u .- u_prev
 
         # primal residual
-        if it > 1
+        # if it > 1
+        # end
+
+        if it % nverbose == 0
+            # compute primal energy (optional)
             res_primal = sum(abs.((u_prev .- u) / tau .+ (p_adjoint_prev .- p_adjoint))) / length(u)
             # res_dual = p1_prev .- p1
             if res_primal < ϵ
                 @info "$it Stopping condition is met. $res_primal"
                 return it
             end
-        end
 
-        # compute primal energy (optional)
-        if it % 20 == 0
             energy = sum(data1.^2) /  length(data1)
             println("$it, approx. data term: $energy, primal_res: $res_primal")
         end
