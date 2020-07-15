@@ -224,7 +224,7 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
     invσ2 = 1. / sigmas[2]
 
     # variables for computinig residuals
-    # du_prev = similar(u)
+    du_prev = similar(p2)
     p_adjoint_prev = similar(p_adjoint)
     # p1_prev = similar(p1)
     # p2_prev = similar(p2)
@@ -275,7 +275,8 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
         end
             
         # primal update
-        u .= max.(u .- tau .* p_adjoint, 0.0) # positivity constraint
+        u .= u .- tau .* p_adjoint
+        # u .= max.(u .- tau .* p_adjoint, 0.0) # positivity constraint
 
         # acceleration
         ubar .= 2 .* u .- u_prev
