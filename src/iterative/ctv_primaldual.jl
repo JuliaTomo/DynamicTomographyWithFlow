@@ -286,7 +286,8 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
 
         if it % nverbose == 0
             # compute primal energy (optional)
-            res_primal = sum(abs.((u_prev .- u) / tau .+ (p_adjoint_prev .- p_adjoint))) / length(u)
+            res_primal = sum(abs.((u_prev .- u) / tau .- (p_adjoint_prev .- p_adjoint))) / length(u)
+            # res_dual = sum(abs.((p_adjoint_prev .- p_adjoint) / sigma .- Ddu ))  / length(u)
             res_primals[it] = res_primal
             # res_dual = p1_prev .- p1
             if res_primal < ϵ && it > 1
