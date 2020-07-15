@@ -128,22 +128,24 @@ function translate_points(list_points::Array{T,2}, translation::AbstractArray{T,
     return list_points.+translation
 end
 
-function rotate_points(list_points::Array{T,2}, ang::T) where T<:AbstractFloat
-    rot = [cos(ang) sin(ang); -sin(ang) cos(ang)]
-    return list_points*rot
-end
+
 
 function get_line(start_point, direction, n)
     return start_point.+direction.*(collect(0:n))
+end
+
+function get_projection_ends(projection, r)
+    #get the 'end points' of the projection, by getting the first and last value where value is greater than tail diameter, which is minimum
+    projection_end1 = findfirst(p -> p > 2*r(0.0), projection)
+    projection_end2 = findlast(p -> p > 2*r(0.0), projection)
+    return projection_end1, projection_end2
 end
 
 function get_straight_template(projection, r, head, ang, num_points,bins)
     projector = [cos(ang) sin(ang)]'
     projected_head = (head*projector)[1,1]
 
-    #get the 'end points' of the projection, by getting the first and last value where value is greater than tail diameter, which is minimum
-    projection_end1 = findfirst(p -> p > 2*r(0.0), projection)
-    projection_end2 = findlast(p -> p > 2*r(0.0), projection)
+    projection_end1, projection_end2 = get_projection_ends(projection, r)
 
     #determine the distance from head to each end point (in projection)
     dist_2_head1 = bins[projection_end1]-projected_head

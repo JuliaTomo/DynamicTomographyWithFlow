@@ -6,6 +6,12 @@ using Printf
 using Measures
 using Dierckx
 using PolygonOps
+include("../curves/curve_utils.jl")
+
+function rotate_points(list_points::Array{T,2}, ang::T) where T<:AbstractFloat
+    rot = [cos(ang) sin(ang); -sin(ang) cos(ang)]
+    return list_points*rot
+end
 
 function segment_length(a::Array{Float64,1},b::Array{Float64,1})
     value = sqrt((a[1]-b[1])^2+(a[2]-b[2])^2)
@@ -20,22 +26,6 @@ function curve_lengths(arr::Array{Float64,2})
     end
     csum = cumsum(result)
     return csum
-end
-
-function get_outline(centerline_points, radius_func)
-    L = size(centerline_points,1)
-    t = curve_lengths(centerline_points)
-    spl = ParametricSpline(t,centerline_points',k=1)
-    tspl = range(0, t[end], length=L)
-
-    derr = derivative(spl,tspl)'
-    normal = hcat(-derr[:,2], derr[:,1])
-    radii = radius_func.(tspl)
-    ronsplinetop = spl(tspl)'.+(radii.*normal)
-    ronsplinebot = (spl(tspl)'.-(radii.*normal))[end:-1:1,:]
-
-    outline_xy = cat(ronsplinetop, ronsplinebot, dims=1)
-    return (outline_xy, normal)
 end
 
 #Makes a matrix where the matrix entry is true iff the center of corresponding pixel is not outside the closed curve
@@ -91,11 +81,25 @@ function get_sperm_phantom(nr_frames::Int64; grid_size=0.1)
     for t=1:nr_frames
         #Remove all zero rows (missing data points)
         non_zeros = filter(i ->  any(v-> v !== 0.0, time_sequence[i,:,t]) ,1:points)
-        prepend!(non_zeros,1)
-        push!(tracks, (time_sequence[non_zeros,:,t]))
+        #prepend!(non_zeros,1)
+
+        center_line = time_sequence[non_zeros,:,t]
+        #translate so it starts at zero
+        #center_line = center_line.-center_line[1,:]'
+
+        #find angles and rotatet the tail so it is on average parallel with the x-axis
+        # this is done by converting points to complex numbers, finding the angles, taking average and turning -average
+        cks = get_ck(center_line)
+
+        xy = get_xy(cks)
+
+        angles_est = angle.(cks[2:end])
+        average_angle = sum(angles_est)/length(angles_est)
+        center_line = rotate_points(xy, -average_angle)
+        push!(tracks, center_line)
 
         #determine outline from skeleton
-        outline, normals = get_outline(reshape(time_sequence[non_zeros,:,t], (length(non_zeros),2)), r)
+        outline, normals = get_outline(center_line, r)
         #close the curve
         outline = cat(outline, outline[1,:]', dims=1)
         #convert to binary image

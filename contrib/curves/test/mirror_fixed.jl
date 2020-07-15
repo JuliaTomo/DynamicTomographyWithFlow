@@ -35,19 +35,19 @@ plt = plot(template[:,1], template[:,2], aspect_ratio=:equal, label="template", 
 plot!(outline[:,1], outline[:,2], label = "target", color=:green)
 
 
-w_u = ones(num_points+2)
+w_u = ones(num_points+1)
 w_u[1] = 0.0
 w_u[2] = 0.0
-w_l = ones(num_points+2)
+w_l = ones(num_points+1)
 w_l[1] = 0.0
-w_l[2] = 0.0
+
 
 stepsize = 0.1
 best_residual = Inf
 best_recon = deepcopy(template)
 
-recon1 = recon2d_tail(deepcopy(best_recon),r,angles,bins,sinogram,5000, 0.0, stepsize, 1, w_u, zeros(num_points+2))
-recon2 = recon2d_tail(deepcopy(best_recon),r,angles,bins,sinogram,5000, 0.0, stepsize, 1, zeros(num_points+2), w_l)
+recon1 = recon2d_tail(deepcopy(best_recon),r,angles,bins,sinogram,5000, 0.0, stepsize, 1, w_u, zeros(num_points+1))
+recon2 = recon2d_tail(deepcopy(best_recon),r,angles,bins,sinogram,5000, 0.0, stepsize, 1, zeros(num_points+1), w_l)
 
 initial1 = deepcopy(recon1)
 initial2 = deepcopy(recon2)
@@ -55,17 +55,17 @@ for flip_pt=1:num_points
     recon1_flipped = flip(initial1,flip_pt,angles[1])
     recon2_flipped = flip(initial2,flip_pt,angles[1])
     #mirror and reconstruct with weights on both sides
-    recon1 = recon2d_tail(deepcopy(recon1_flipped),r,angles,bins,sinogram,100, 0.0, stepsize, 1, w_u, zeros(num_points+2))
-    recon2 = recon2d_tail(deepcopy(recon2_flipped),r,angles,bins,sinogram,100, 0.0, stepsize, 1, zeros(num_points+2), w_l)
+    recon1 = recon2d_tail(deepcopy(recon1_flipped),r,angles,bins,sinogram,100, 0.0, stepsize, 1, w_u, zeros(num_points+1))
+    recon2 = recon2d_tail(deepcopy(recon2_flipped),r,angles,bins,sinogram,100, 0.0, stepsize, 1, zeros(num_points+1), w_l)
 
-    global best_residual, best_recon[:,:], residual1, residual2 = try_improvement(best_residual, recon1, recon2, angles[1], bins, sinogram, best_recon, tail_length)
+    global best_residual, best_recon[:,:], residual1, residual2 = try_improvement(best_residual, recon1, recon2, angles[1], bins, sinogram, best_recon, tail_length, r)
 end
 
 @info "keeping the best parts and restarting reconstruction"
 recon_best = keep_best_parts(residual1, deepcopy(best_recon), ang, bins, 3, num_points, tail_length, sinogram[:,1], r)
-recon1 = recon2d_tail(deepcopy(recon_best),r,[ang],bins,sinogram,5000, 0.0, stepsize, 1, w_u, zeros(num_points+2))
-recon2 = recon2d_tail(deepcopy(recon_best),r,[ang],bins,sinogram,5000, 0.0, stepsize, 1, zeros(num_points+2), w_l)
-best_residual,best_recon[:,:], residual1, residual2 = try_improvement(best_residual, recon1, recon2, ang, bins, sinogram, best_recon, tail_length)
+recon1 = recon2d_tail(deepcopy(recon_best),r,[ang],bins,sinogram,5000, 0.0, stepsize, 1, w_u, zeros(num_points+1))
+recon2 = recon2d_tail(deepcopy(recon_best),r,[ang],bins,sinogram,5000, 0.0, stepsize, 1, zeros(num_points+1), w_l)
+best_residual,best_recon[:,:], residual1, residual2 = try_improvement(best_residual, recon1, recon2, ang, bins, sinogram, best_recon, tail_length, r)
 
 initial1 = deepcopy(recon1)
 initial2 = deepcopy(recon2)
@@ -73,16 +73,16 @@ for flip_pt=1:num_points
     recon1_flipped = flip(initial1,flip_pt,angles[1])
     recon2_flipped = flip(initial2,flip_pt,angles[1])
     #mirror and reconstruct with weights on both sides
-    recon1 = recon2d_tail(deepcopy(recon1_flipped),r,angles,bins,sinogram,100, 0.0, stepsize, 1, w_u, zeros(num_points+2))
-    recon2 = recon2d_tail(deepcopy(recon2_flipped),r,angles,bins,sinogram,100, 0.0, stepsize, 1, zeros(num_points+2), w_l)
+    recon1 = recon2d_tail(deepcopy(recon1_flipped),r,angles,bins,sinogram,100, 0.0, stepsize, 1, w_u, zeros(num_points+1))
+    recon2 = recon2d_tail(deepcopy(recon2_flipped),r,angles,bins,sinogram,100, 0.0, stepsize, 1, zeros(num_points+1), w_l)
 
-    global best_residual, best_recon[:,:], residual1, residual2 = try_improvement(best_residual, recon1, recon2, angles[1], bins, sinogram, best_recon, tail_length)
+    global best_residual, best_recon[:,:], residual1, residual2 = try_improvement(best_residual, recon1, recon2, angles[1], bins, sinogram, best_recon, tail_length, r)
 end
 
 recon1 = flip(best_recon,1,ang)
 recon2 = deepcopy(best_recon)
-recon2d_tail(deepcopy(recon1),r,angles,bins,sinogram,1, 0.0, stepsize, 1, w_u, zeros(num_points+2), plot=true)
-recon2d_tail(deepcopy(recon2),r,angles,bins,sinogram,1, 0.0, stepsize, 1, zeros(num_points+2), w_l, plot=true)
+recon2d_tail(deepcopy(recon1),r,angles,bins,sinogram,1, 0.0, stepsize, 1, w_u, zeros(num_points+1), doplot=true)
+recon2d_tail(deepcopy(recon2),r,angles,bins,sinogram,1, 0.0, stepsize, 1, zeros(num_points+1), w_l, doplot=true)
 plot!(recon1[:,1],recon1[:,2], label="upper", color=:red, linewidth=2)
 plot!(recon2[:,1],recon2[:,2], label="lower", color=:blue, linewidth=2)
 

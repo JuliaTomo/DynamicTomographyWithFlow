@@ -9,6 +9,7 @@ include("../../phantoms/sperm_phantom.jl")
 include("../snake_forward.jl")
 include("../snake.jl")
 include("../curve_utils.jl")
+include("./angle_test.jl")
 using Plots
 using Colors
 using Random
@@ -31,9 +32,10 @@ images, tracks = get_sperm_phantom(301,grid_size=0.1)
 
 detmin, detmax = -38.0, 38.0
 grid = collect(detmin:0.1:detmax)
-bins = collect(detmin:0.125:detmax)
+bin_width = 0.125
+bins = collect(detmin:bin_width:detmax)
 
-ang = π/2
+ang = 0.0
 angles, max_iter, stepsize = [ang], 10000, 0.1
 tail_length = curve_lengths(tracks[end])[end]
 num_points = 30
@@ -55,6 +57,7 @@ for (iter, frame_nr) in Base.Iterators.reverse(enumerate(frames2reconstruct))
     outline, normals = get_outline(tracks[frame_nr], r)
     projection = parallel_forward(outline, [ang], bins)
 
+    head = tracks[frame_nr][1,:]
     #Add noise
     @info "adding gaussian noise at level 0.01"
     rho = 0.01
@@ -70,24 +73,37 @@ for (iter, frame_nr) in Base.Iterators.reverse(enumerate(frames2reconstruct))
 
     angles = [ang]
 
-    w = ones(num_points+2)
-    w[1] = 0.0
-    w[2] = 0.0
+    w_u = ones(num_points*2+2).*stepsize
+    w_u[num_points+2:end] .= 0.0
+
+    w_l = ones(num_points*2+2).*stepsize
+    w_l[1:num_points+2] .= 0.0
 
     recon1_ok = false
     recon2_ok = false
 
     best_residual = Inf
-    best_recon = get_straight_template(projection[:,1], r, [0.0 0.0], ang, num_points,bins)
+    #best_recon = get_straight_template(projection[:,1], r, [0.0 0.0], ang, num_points,bins)
     heatmap(grid, grid, Gray.(images[:,:,frame_nr]), yflip=false, aspect_ratio=:equal, framestyle=:none, legend=true)
     cd(savepath)
     @info "setting up template"
+    rebinned_bins, rebinned_projection = rebin(projection[:,1], bins, 29)
+    #template = estimate_curve(rebinned_projection, rebinned_bins, angles, head, r, num_points)
     template = get_straight_template(projection[:,1], r, [0.0 0.0], ang, num_points,bins)
     plot!(template[:,1], template[:,2], label=@sprintf "template")
+    savefig(@sprintf "test_%d" frame_nr)
+    # #
+
+    best_recon = deepcopy(template)
+
+
     @info "calculating initial reconstruction"
     #Reconstruct with weights only on one side
-    recon1 = recon2d_tail(deepcopy(template),r,[ang],bins,projection,max_iter, 0.0, stepsize, 1, w, zeros(num_points+2))
-    recon2 = recon2d_tail(deepcopy(template),r,[ang],bins,projection,max_iter, 0.0, stepsize, 1, zeros(num_points+2), w)
+
+    recon1 = recon2d_tail(deepcopy(template),r,[ang],bins,projection,1, 0.0, w_u, 1, doplot=true)
+
+    recon1 = recon2d_tail(deepcopy(template),r,[ang],bins,projection,max_iter, 0.0, w_u, 1)
+    recon2 = recon2d_tail(deepcopy(template),r,[ang],bins,projection,max_iter, 0.0, w_l, 1)
     best_residual, best_recon[:,:], residual1, residual2 = try_improvement(best_residual, recon1, recon2, ang, bins, projection, best_recon, tail_length, r)
     plot_update(best_recon, best_residual, "initial")
 
@@ -106,12 +122,12 @@ for (iter, frame_nr) in Base.Iterators.reverse(enumerate(frames2reconstruct))
             best_residual, best_recon[:,:], residual1, residual2 = try_improvement(best_residual, recon1_flipped, recon2_flipped, ang, bins, projection, best_recon, tail_length, r)
 
             #mirror and reconstruct with weights on both sides
-            recon1 = recon2d_tail(deepcopy(recon1_flipped),r,[ang],bins,projection,100, 0.0, stepsize, 1, w, zeros(num_points+2))
-            recon2 = recon2d_tail(deepcopy(recon2_flipped),r,[ang],bins,projection,100, 0.0, stepsize, 1, zeros(num_points+2), w)
+            recon1 = recon2d_tail(deepcopy(recon1_flipped),r,[ang],bins,projection,100, 0.0, w_u, 1)
+            recon2 = recon2d_tail(deepcopy(recon2_flipped),r,[ang],bins,projection,100, 0.0, w_l, 1)
             best_residual, best_recon[:,:], residual1, residual2 = try_improvement(best_residual, recon1, recon2, ang, bins, projection, best_recon, tail_length, r)
 
-            recon1 = recon2d_tail(deepcopy(recon1_flipped),r,[ang],bins,projection,100, 0.0, stepsize, 1, zeros(num_points+2), w)
-            recon2 = recon2d_tail(deepcopy(recon2_flipped),r,[ang],bins,projection,100, 0.0, stepsize, 1, w, zeros(num_points+2))
+            recon1 = recon2d_tail(deepcopy(recon1_flipped),r,[ang],bins,projection,100, 0.0, w_l, 1)
+            recon2 = recon2d_tail(deepcopy(recon2_flipped),r,[ang],bins,projection,100, 0.0, w_u, 1)
             best_residual, best_recon[:,:], residual1, residual2 = try_improvement(best_residual, recon1, recon2, ang, bins, projection, best_recon, tail_length, r)
         end
         plot_update(best_recon, best_residual, "flip1")
@@ -127,18 +143,20 @@ for (iter, frame_nr) in Base.Iterators.reverse(enumerate(frames2reconstruct))
 
             best_residual, best_recon[:,:], residual1, residual2 = try_improvement(best_residual, recon1_flipped, recon2_flipped, ang, bins, projection, best_recon, tail_length, r)
 
-            recon1 = recon2d_tail(deepcopy(recon1_flipped),r,[ang],bins,projection,100, 0.0, stepsize, 1, w, zeros(num_points+2))
-            recon2 = recon2d_tail(deepcopy(recon2_flipped),r,[ang],bins,projection,100, 0.0, stepsize, 1, zeros(num_points+2), w)
+            recon1 = recon2d_tail(deepcopy(recon1_flipped),r,[ang],bins,projection,100, 0.0, w_u, 1)
+            recon2 = recon2d_tail(deepcopy(recon2_flipped),r,[ang],bins,projection,100, 0.0, w_l, 1)
             best_residual, best_recon[:,:], residual1, residual2 = try_improvement(best_residual, recon1, recon2, ang, bins, projection, best_recon, tail_length, r)
 
-            recon1 = recon2d_tail(deepcopy(recon1_flipped),r,[ang],bins,projection,100, 0.0, stepsize, 1, zeros(num_points+2), w)
-            recon2 = recon2d_tail(deepcopy(recon2_flipped),r,[ang],bins,projection,100, 0.0, stepsize, 1, w, zeros(num_points+2))
+            recon1 = recon2d_tail(deepcopy(recon1_flipped),r,[ang],bins,projection,100, 0.0, w_l, 1)
+            recon2 = recon2d_tail(deepcopy(recon2_flipped),r,[ang],bins,projection,100, 0.0, w_u, 1)
             best_residual, best_recon[:,:], residual1, residual2 = try_improvement(best_residual, recon1, recon2, ang, bins, projection, best_recon, tail_length, r)
         end
         plot_update(best_recon, best_residual, "flip2")
         if best_residual < 1.0
             break
         end
+
+        recon1 = recon2d_tail(deepcopy(best_recon),r,[ang],bins,projection,1, 0.0,  w_u, 1, doplot=true)
 
         # @info "keeping the best parts and restarting reconstruction"
         # recon_best = keep_best_parts(residual1, deepcopy(best_recon), ang, bins, 1, num_points, tail_length, projection[:,1], r)

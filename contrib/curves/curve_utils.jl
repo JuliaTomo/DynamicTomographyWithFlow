@@ -51,9 +51,27 @@ function eliminate_loopy_stuff(curve, limit)
     return curve
 end
 
+function get_xy(cks)
+    Re = real(cks)
+    Im = imag(cks)
+    y = cumsum(Im);
+    x = cumsum(Re);
+    prepend!(y,[0.0]);
+    prepend!(x,[0.0]);
+    return cat(x,y, dims =2)
+end
+
+function get_ck(xy)
+    xy_1 = xy[1:end-1,:]
+    xy_2 = xy[2:end,:]
+    vecs = xy_2.-xy_1
+    return vecs[:,1]+im*vecs[:,2]
+end
+
 function get_outline(centerline_points, radius_func)
     L = size(centerline_points,1)
     t = curve_lengths(centerline_points)
+
     spl = ParametricSpline(t,centerline_points',k=1)
     tspl = range(0, t[end], length=L)
 
@@ -63,17 +81,47 @@ function get_outline(centerline_points, radius_func)
     ronsplinetop = spl(tspl)'.+(radii.*normal)
     ronsplinebot = (spl(tspl)'.-(radii.*normal))[end:-1:1,:]
 
-    head = centerline_points[1,:]
-    tail = centerline_points[L,:]
+    head = (ronsplinetop[1,:].+ronsplinebot[end,:])./2-(radii[1]*hcat(derr[1,1], derr[1,2]))'
+    tail = (ronsplinetop[end,:].+ronsplinebot[1,:])./2+(radii[end]*hcat(derr[end,1], derr[end,2]))'
 
-    endpointtop = cat(head',ronsplinetop, dims=1)
-    endpointtop = cat(endpointtop, tail', dims=1)
-    endpointbot = cat(tail',ronsplinebot, dims=1)
-    endpointbot = cat(endpointbot, head', dims=1)
+    ronsplinetop = cat(head', ronsplinetop, dims = 1)
+    ronsplinebot = cat(tail', ronsplinebot, dims = 1)
+    #ronsplinebot = cat(ronsplinebot, head', dims = 1)
 
-    outline_xy = cat(endpointtop, endpointbot, dims=1)
+    outline_xy = cat(ronsplinetop, ronsplinebot, dims=1)
+
+    # t = curve_lengths(outline_xy)
+    # spl = ParametricSpline(t, outline_xy', k=2, periodic=true)
+    # derr = derivative(spl,t)'
+    # normal = hcat(-derr[:,2], derr[:,1])
+    normal = snake_normals(outline_xy)
+
     return (outline_xy, normal)
 end
+
+# function get_outline(centerline_points, radius_func)
+#     L = size(centerline_points,1)
+#     t = curve_lengths(centerline_points)
+#     spl = ParametricSpline(t,centerline_points',k=1)
+#     tspl = range(0, t[end], length=L)
+#
+#     derr = derivative(spl,tspl)'
+#     normal = hcat(-derr[:,2], derr[:,1])
+#     radii = radius_func.(tspl)
+#     ronsplinetop = spl(tspl)'.+(radii.*normal)
+#     ronsplinebot = (spl(tspl)'.-(radii.*normal))[end:-1:1,:]
+#
+#     head = centerline_points[1,:]
+#     tail = centerline_points[end,:]
+#
+#     endpointtop = cat(head',ronsplinetop, dims=1)
+#     #endpointtop = cat(endpointtop, tail', dims=1)
+#     endpointbot = cat(tail',ronsplinebot, dims=1)
+#     #endpointbot = cat(endpointbot, head', dims=1)
+#
+#     outline_xy = cat(endpointtop, endpointbot, dims=1)
+#     return (outline_xy, normal)
+# end
 
 #Makes a matrix where the matrix entry is true iff the center of corresponding pixel is not outside the closed curve
 #curve is closed curve where first and last point should be the same.

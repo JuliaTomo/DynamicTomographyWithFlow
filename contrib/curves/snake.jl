@@ -12,35 +12,50 @@ include("./curve_utils.jl")
 #Reimplementation of Vedranas method with modifications.
 
 #VEDRANA MODIFIED
-function displace(centerline_points, force, radius_func, w, w_u, w_l; plot=false)
+function displace(centerline_points, force, radius_func, w; doplot=false)
     L = size(centerline_points,1)
     (outline_xy, normal) = get_outline(centerline_points, radius_func)
 
-    outline_normals = snake_normals(outline_xy)
-    forces = force.*outline_normals
+    forces = force.*normal
 
-    mid = Int64(size(outline_xy,1)/2)#always even
-    upper_forces = forces[1:mid,:]
-    lower_forces = (forces[mid+1:end, :])[end:-1:1,:]
+    displaced_outline = outline_xy .+ (forces.*w)
 
-    upper_points = outline_xy[1:mid,:]
-    lower_points = (outline_xy[mid+1:end, :])[end:-1:1,:]
+    mid = Int64(size(displaced_outline,1)/2)#always even
+    upper_points = displaced_outline[3:mid-1,:]
+    lower_points = (displaced_outline[mid+3:end-1, :])[end:-1:1,:]
 
-    displaced_upper_points = upper_points .+ w*(upper_forces.*w_u);
-    displaced_lower_points = lower_points .+ w*(lower_forces.*w_l);
-    displaced_centerline = zeros(L,2)
+    displaced_centerline = (upper_points + lower_points)./2
+    head = (displaced_outline[1,:] + displaced_outline[2,:] + displaced_outline[end,:])./3
+    tail = (displaced_outline[mid-1,:] + displaced_outline[mid,:] + displaced_outline[mid+1,:])./3
 
-    displaced_centerline[2:end-1,:] = (displaced_upper_points[3:end-2,:]+displaced_lower_points[3:end-2,:])./2
-    displaced_centerline[1,:] = (displaced_upper_points[1,:]+displaced_lower_points[1,:]+displaced_upper_points[2,:]+displaced_lower_points[2,:])./4
-    displaced_centerline[L,:] = (displaced_upper_points[end,:]+displaced_lower_points[end,:]+displaced_upper_points[end-1,:]+displaced_lower_points[end-1,:])./4
-    if plot
-        f = cat(w*(upper_forces.*w_u), (w*(lower_forces.*w_l))[end:-1:1,:], dims = 1).*25
-        quiver!(outline_xy[:,1], outline_xy[:,2], quiver=(f[:,1], f[:,2]), color=:gray)
-    end
+    displaced_centerline = cat(head', displaced_centerline, dims = 1)
+    displaced_centerline = cat(displaced_centerline, tail', dims = 1)
+
+    #enforce π/3 constraint - way to ensure some degree of smoothness
+    cks = get_ck(displaced_centerline)
+
+    angles_1 = angle.(cks[2:end])
+    angles_2 = angle.(cks[1:end-1])
+
+    difference = abs.(angles_1-angles_2)
+    signs = sign.(angles_2-angles_1)
+
+    # violation_index = findall(d-> d > π/3, difference)
+    # if length(violation_index) > 0
+    #     cks[violation_index.+1] .= abs.(cks[violation_index]).*ℯ.^(im*signs[violation_index]*π/3)
+    #
+    #     displaced_centerline = get_xy(cks)
+    #
+    #     # if doplot
+    #     #     plot!(xy[:,1], xy[:,2], label="xy")
+    #     # #quiver!(outline_xy[:,1], outline_xy[:,2], quiver = (normal[:,1], normal[:,2]))
+    #     # end
+    # end
+
     return displaced_centerline
 end
 
-function move_points(residual,curves,angles,N,centerline_points,r,w,w_u, w_l; plot=false)
+function move_points(residual,curves,angles,N,centerline_points,r,w; doplot=false)
     (x_length, y_length) = size(residual)
     vals = zeros(Float64, N)
     if y_length > 1
@@ -58,7 +73,7 @@ function move_points(residual,curves,angles,N,centerline_points,r,w,w_u, w_l; pl
 
     force = vals*(1/length(angles))
 
-    centerline_points = displace(centerline_points, force, r, w, w_u, w_l, plot=plot)
+    centerline_points = displace(centerline_points, force, r, w, doplot=doplot)
     return centerline_points
 end
 
@@ -76,7 +91,7 @@ function to_pixel_coordinates(current, angles, bins)
     return vertex_coordinates
 end
 
-function evolve_curve(sinogram_target, centerline_points, r, angles, bins, max_iter, w, w_u, w_l, smoothness, degree::Int64; plot=false)
+function evolve_curve(sinogram_target, centerline_points, r, angles, bins, max_iter, w, smoothness, degree::Int64; doplot=false)
     (current, normal) = get_outline(centerline_points, r)
     current_sinogram = parallel_forward(current,angles,bins)
 
@@ -86,7 +101,7 @@ function evolve_curve(sinogram_target, centerline_points, r, angles, bins, max_i
     N = size(current,1)
     centerline_start = centerline_points[1,:]
     for iter  = 1:max_iter
-        centerline_points = move_points(residual,curves,angles,N,centerline_points,r, w, w_u,w_l, plot=plot)
+        centerline_points = move_points(residual,curves,angles,N,centerline_points,r, w, doplot=doplot)
 
         L = size(centerline_points,1)
         #HACK
@@ -121,8 +136,8 @@ function evolve_curve(sinogram_target, centerline_points, r, angles, bins, max_i
     return centerline_points
 end
 
-function recon2d_tail(centerline_points::AbstractArray{T,2}, r, angles::Array{T},bins::Array{T},sinogram_target::Array{T,2}, max_iter::Int, smoothness::T, w::T, degree::Int64, w_u::Array{T}, w_l::Array{T}; plot=false) where T<:AbstractFloat
-    current = evolve_curve(sinogram_target, centerline_points, r, angles, bins, max_iter, w, w_u, w_l, smoothness, degree, plot=plot)
+function recon2d_tail(centerline_points::AbstractArray{T,2}, r, angles::Array{T},bins::Array{T},sinogram_target::Array{T,2}, max_iter::Int, smoothness::T, w::Array{T}, degree::Int64; doplot=false) where T<:AbstractFloat
+    current = evolve_curve(sinogram_target, centerline_points, r, angles, bins, max_iter, w, smoothness, degree, doplot=doplot)
     return current
 end
 
@@ -153,7 +168,7 @@ function distribute_points(curve)
     return curve_new[1:end-1,:]
 end
 
-function move_points(residual,curves,angles,N,centerline_points,r,w,w_u, w_l; plot=false)
+function move_points(residual,curves,angles,N,centerline_points,r,w; doplot=false)
     (x_length, y_length) = size(residual)
     vals = zeros(Float64, N)
     if y_length > 1
@@ -171,7 +186,7 @@ function move_points(residual,curves,angles,N,centerline_points,r,w,w_u, w_l; pl
 
     force = vals*(1/length(angles))
 
-    centerline_points = displace(centerline_points, force, r, w, w_u, w_l, plot=plot)
+    centerline_points = displace(centerline_points, force, r, w, doplot=doplot)
     return centerline_points
 end
 
