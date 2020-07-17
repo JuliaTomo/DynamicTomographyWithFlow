@@ -224,10 +224,12 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
     invσ2 = 1. / sigmas[2]
 
     # variables for computinig residuals
-    # du_prev = similar(u)
+    du_prev = similar(p2)
     p_adjoint_prev = similar(p_adjoint)
     # p1_prev = similar(p1)
     # p2_prev = similar(p2)
+
+    res_primals = zeros(niter)
 
     for it=1:niter
         if it % nverbose == 0
@@ -273,7 +275,8 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
         end
             
         # primal update
-        u .= max.(u .- tau .* p_adjoint, 0.0) # positivity constraint
+        u .= u .- tau .* p_adjoint
+        # u .= max.(u .- tau .* p_adjoint, 0.0) # positivity constraint
 
         # acceleration
         ubar .= 2 .* u .- u_prev
@@ -284,7 +287,9 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
 
         if it % nverbose == 0
             # compute primal energy (optional)
-            res_primal = sum(abs.((u_prev .- u) / tau .+ (p_adjoint_prev .- p_adjoint))) / length(u)
+            res_primal = sum(abs.((u_prev .- u) / tau .- (p_adjoint_prev .- p_adjoint))) / length(u)
+            # res_dual = sum(abs.((p_adjoint_prev .- p_adjoint) / sigma .- Ddu ))  / length(u)
+            res_primals[it] = res_primal
             # res_dual = p1_prev .- p1
             if res_primal < ϵ && it > 1
                 @info "$it Stopping condition is met. $res_primal"
@@ -297,7 +302,7 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
 
     end
 
-    return (u, niter)
+    return (u, niter, res_primals)
 end
 
 """
