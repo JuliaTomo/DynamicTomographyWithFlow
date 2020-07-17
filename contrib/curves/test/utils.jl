@@ -177,22 +177,22 @@ end
 
 #TODO could check if they are parallel in same place
 function try_improvement(best_residual, recon1, recon2, ang, bins, projection, best_recon, tail_length, r)
-    residual1 = parallel_forward(get_outline(recon1, r)[1], [ang], bins) - projection
-    residual2 = parallel_forward(get_outline(recon2, r)[1], [ang], bins) - projection
-    ok1, k1, length_ok1, prime1 = could_be_sperm_tail(tail_length, recon1)
-    ok2, k2, length_ok2, prime2 = could_be_sperm_tail(tail_length, recon2)
+    residual1 = norm(parallel_forward(get_outline(recon1, r)[1], [ang], bins) - projection)
+    residual2 = norm(parallel_forward(get_outline(recon2, r)[1], [ang], bins) - projection)
+    #ok1, k1, length_ok1, prime1 = could_be_sperm_tail(tail_length, recon1)
+    #ok2, k2, length_ok2, prime2 = could_be_sperm_tail(tail_length, recon2)
 
-    k = count_parallel(projection[:,1], r, limit = 30)
+    #k = count_parallel(projection[:,1], r, limit = 30)
 
-    c1 = norm(residual1)+max(0,abs(ok1-1))#+abs(maximum(abs.(prime1))-1.0)
-    if c1 < best_residual  && length_ok1
-        best_residual = c1#norm(residual1)
+    # c1 = norm(residual1)+max(0,abs(ok1-1))#+abs(maximum(abs.(prime1))-1.0)
+    if residual1 < best_residual#  && length_ok1
+        best_residual = residual1#norm(residual1)
         best_recon = recon1
     end
-
-    c2 = norm(residual2)+max(0,abs(ok2-1))#+abs(maximum(abs.(prime2))-1.0)
-    if c2 < best_residual  && length_ok2
-        best_residual = c2#norm(residual2)
+    #
+    # c2 = norm(residual2)+max(0,abs(ok2-1))#+abs(maximum(abs.(prime2))-1.0)
+    if residual2 < best_residual#  && length_ok2
+        best_residual = residual2#norm(residual2)
         best_recon = recon2
     end
 

@@ -58,12 +58,8 @@ function process_frame(frame)
 
     #find angles and rotatet the tail so it is on average parallel with the x-axis
     # this is done by converting points to complex numbers, finding the angles, taking average and turning -average
-    tail = center_line[end,:]
     head = center_line[1,:]
-    vecs = center_line[2:end,:].-center_line[1:end-1,:]
-    vecs = cat(vecs, tail', dims = 1)
-    vecs = cat(head', vecs, dims = 1)
-    cks = vecs[:,1].+im*vecs[:,2]
+    cks = get_ck(center_line)
 
     xy = get_xy(cks)[2:end,:]
 
@@ -82,19 +78,24 @@ function process_frame(frame)
     plot!(outline[:,1], outline[:,2], label = "outline")
 
     #Define angles and bin  width for forward projection
-    bin_width = 2.0
-    bins = collect(-1:bin_width:38)
+    detmin, detmax = -36.5, 36.5
+    bin_width = 0.125
+    bins = collect(detmin:bin_width:detmax)
     angles = [0.0]
     projection = parallel_forward(outline,angles,bins)
 
+
+    rebinned_bins, rebinned_projection = rebin(projection[:,1], bins, 39)
+
     # #plot forward projection
-    y_vals = cat(bins,projection,dims=2)
+    y_vals = cat(rebinned_bins,rebinned_projection,dims=2)
     plot_vals = y_vals
-    plot!((bins.-1.0), projection,label="projection", color=:green, linetype=:steppost)
-    #plot!(plot_vals[:,1], plot_vals[:,2],label="projection", color=:green, linetype=:steppost)
+    #plot!((bins.-1.0), projection,label="projection", color=:green, linetype=:steppost)
+    plot!(plot_vals[:,1], plot_vals[:,2],label="projection", color=:green, linetype=:steppost)
     savefig(@sprintf "image_%d" frame)
 
-    return estimate_curve(projection, bins, angles, head, r, 30 )
+
+    return estimate_curve(rebinned_projection, rebinned_bins, angles, head, r, 30 )
 end
 
 function estimate_curve(projection, bins, angles, head, r, num_points)
@@ -152,7 +153,7 @@ function estimate_curve(projection, bins, angles, head, r, num_points)
 
         xy = get_xy(cks)[2:end,:]
 
-        #xy = rotate_points(xy, -average_ang)
+        xy = rotate_points(xy, -average_ang)
 
         xdata = xy[:,1]
         ydata = xy[:,2]
@@ -174,43 +175,45 @@ function estimate_curve(projection, bins, angles, head, r, num_points)
         end
     end
 
-    #plot!(best_curve[:,1], best_curve[:,2], label="best")
+    plot!(best_curve[:,1], best_curve[:,2], label="best")
     fit = curve_fit(model, best_curve[:,1], best_curve[:,2], p0)
-    #plot!(best_curve[:,1], model(best_curve[:,1], coef(fit)), label="model_best")
+    plot!(best_curve[:,1], model(best_curve[:,1], coef(fit)), label="model_best")
 
     x_vals = range(best_curve[1,1], best_curve[end,1], length = num_points)
     xy = cat(x_vals, model(x_vals, coef(fit)), dims=2)
-    #mirror = flip(m,1,angles[1])
-    #plot!(mirror[:,1], mirror[:,2], aspect_ratio=:equal, label="mirror")
+    mirror = flip(xy,1,angles[1])
+    plot!(mirror[:,1], mirror[:,2], aspect_ratio=:equal, label="mirror")
 
     #Determine the outline
-    # xy = cat(best_curve[:,1], model(best_curve[:,1], coef(fit)), dims=2)
+    st, en = best_curve[1,1], best_curve[end,1]
+    xs = range(st, en, length=num_points)
+    xy = cat(xs, model(xs, coef(fit)), dims=2)
     # estimated_head = xy[1,:]
     # translation_needed = head.-estimated_head
     # xy = xy.+translation_needed'
-    # outline = get_outline(xy, r)[1]
+    outline = get_outline(xy, r)[1]
 
 
 
     #Define angles and bin  width for forward projection
-    # projection = parallel_forward(outline,angles,bins)
+    projection = parallel_forward(outline,angles,bins)
     # #
-    # # #plot forward projection
-    # y_vals = cat(bins,projection,dims=2)
-    # plot_vals = y_vals
-    # plot!(plot_vals[:,1], plot_vals[:,2],label="projection_best_model")
+    # #plot forward projection
+    y_vals = cat(bins,projection,dims=2)
+    plot_vals = y_vals
+    plot!(plot_vals[:,1], plot_vals[:,2],label="projection_best_model")
     return xy
 end
 
-# cwd = @__DIR__
-# savepath = normpath(joinpath(@__DIR__, "result"))
-# !isdir(savepath) && mkdir(savepath)
-# cd(savepath)
-# for i in 1:27
-#     plot()
-#     println(i)
-#     process_frame(i)
-#     savefig(@sprintf "angle_test_result_%d" i)
-# end
+cwd = @__DIR__
+savepath = normpath(joinpath(@__DIR__, "result"))
+!isdir(savepath) && mkdir(savepath)
+cd(savepath)
+for i in 1:27
+    plot()
+    println(i)
+    process_frame(i)
+    savefig(@sprintf "angle_test_result_%d" i)
+end
 #process_frame(21)
 #savefig(@sprintf "angle_test_result_%d" i)

@@ -30,7 +30,7 @@ savepath = normpath(joinpath(@__DIR__, "result"))
 
 images, tracks = get_sperm_phantom(301,grid_size=0.1)
 
-detmin, detmax = -38.0, 38.0
+detmin, detmax = -36.5, 36.5
 grid = collect(detmin:0.1:detmax)
 bin_width = 0.125
 bins = collect(detmin:bin_width:detmax)
@@ -40,7 +40,7 @@ angles, max_iter, stepsize = [ang], 10000, 0.1
 tail_length = curve_lengths(tracks[end])[end]
 num_points = 30
 r(s) = 1.0
-frames2reconstruct = collect(1:10:300)
+frames2reconstruct = collect(101:10:300)
 reconstructions = zeros(num_points,2,length(frames2reconstruct)+1)
 #Add actual track at the end so rand sperm works and we can compare timewise
 centerline_points = tracks[frames2reconstruct[end]+10]
@@ -74,36 +74,41 @@ for (iter, frame_nr) in Base.Iterators.reverse(enumerate(frames2reconstruct))
     angles = [ang]
 
     w_u = ones(num_points*2+2).*stepsize
-    w_u[num_points+2:end] .= 0.0
+    w_u[num_points+3:end] .= 0.0
+    w_u[[1,2]] .=0.0
 
     w_l = ones(num_points*2+2).*stepsize
-    w_l[1:num_points+2] .= 0.0
+    w_l[1:num_points+1] .= 0.0
+    w_l[end] = 0.0
 
     recon1_ok = false
     recon2_ok = false
 
-    best_residual = Inf
-    #best_recon = get_straight_template(projection[:,1], r, [0.0 0.0], ang, num_points,bins)
-    heatmap(grid, grid, Gray.(images[:,:,frame_nr]), yflip=false, aspect_ratio=:equal, framestyle=:none, legend=true)
+
+
+    heatmap(grid, grid, Gray.(images[:,:,frame_nr]), yflip=false, aspect_ratio=:equal, xlims=(-36.5,36.5), framestyle=:none, legend=true)
     cd(savepath)
     @info "setting up template"
-    rebinned_bins, rebinned_projection = rebin(projection[:,1], bins, 29)
-    #template = estimate_curve(rebinned_projection, rebinned_bins, angles, head, r, num_points)
-    template = get_straight_template(projection[:,1], r, [0.0 0.0], ang, num_points,bins)
+    rebinned_bins, rebinned_projection = rebin(projection[:,1], bins, 39)
+    template = estimate_curve(rebinned_projection, rebinned_bins, angles, head, r, num_points)
+    #template = get_straight_template(projection[:,1], r, [0.0 0.0], ang, num_points,bins)
     plot!(template[:,1], template[:,2], label=@sprintf "template")
     savefig(@sprintf "test_%d" frame_nr)
     # #
 
     best_recon = deepcopy(template)
-
+    best_residual = norm(parallel_forward(get_outline(template, r)[1], [ang], bins) - projection)
 
     @info "calculating initial reconstruction"
     #Reconstruct with weights only on one side
 
-    recon1 = recon2d_tail(deepcopy(template),r,[ang],bins,projection,1, 0.0, w_u, 1, doplot=true)
+    #recon1 = recon2d_tail(deepcopy(template),r,[ang],bins,projection,1, 0.0, w_u, 1, doplot=true)
 
     recon1 = recon2d_tail(deepcopy(template),r,[ang],bins,projection,max_iter, 0.0, w_u, 1)
     recon2 = recon2d_tail(deepcopy(template),r,[ang],bins,projection,max_iter, 0.0, w_l, 1)
+
+    plot!(recon1[:,1], recon1[:,1])
+    plot!(recon2[:,1], recon2[:,1])
     best_residual, best_recon[:,:], residual1, residual2 = try_improvement(best_residual, recon1, recon2, ang, bins, projection, best_recon, tail_length, r)
     plot_update(best_recon, best_residual, "initial")
 
