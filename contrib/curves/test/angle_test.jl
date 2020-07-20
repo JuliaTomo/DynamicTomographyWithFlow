@@ -175,14 +175,14 @@ function estimate_curve(projection, bins, angles, head, r, num_points)
         end
     end
 
-    plot!(best_curve[:,1], best_curve[:,2], label="best")
+    #plot!(best_curve[:,1], best_curve[:,2], label="best")
     fit = curve_fit(model, best_curve[:,1], best_curve[:,2], p0)
-    plot!(best_curve[:,1], model(best_curve[:,1], coef(fit)), label="model_best")
+    #plot!(best_curve[:,1], model(best_curve[:,1], coef(fit)), label="model_best")
 
     x_vals = range(best_curve[1,1], best_curve[end,1], length = num_points)
     xy = cat(x_vals, model(x_vals, coef(fit)), dims=2)
     mirror = flip(xy,1,angles[1])
-    plot!(mirror[:,1], mirror[:,2], aspect_ratio=:equal, label="mirror")
+    #plot!(mirror[:,1], mirror[:,2], aspect_ratio=:equal, label="mirror")
 
     #Determine the outline
     st, en = best_curve[1,1], best_curve[end,1]
@@ -201,7 +201,7 @@ function estimate_curve(projection, bins, angles, head, r, num_points)
     # #plot forward projection
     y_vals = cat(bins,projection,dims=2)
     plot_vals = y_vals
-    plot!(plot_vals[:,1], plot_vals[:,2],label="projection_best_model")
+    #plot!(plot_vals[:,1], plot_vals[:,2],label="projection_best_model")
     return xy
 end
 

@@ -86,12 +86,12 @@ for (iter, frame_nr) in Base.Iterators.reverse(enumerate(frames2reconstruct))
 
 
 
-    heatmap(grid, grid, Gray.(images[:,:,frame_nr]), yflip=false, aspect_ratio=:equal, xlims=(-36.5,36.5), framestyle=:none, legend=true)
+    heatmap(grid, grid, Gray.(images[:,:,frame_nr]), yflip=false, aspect_ratio=:equal, framestyle=:none, legend=true)
     cd(savepath)
     @info "setting up template"
     rebinned_bins, rebinned_projection = rebin(projection[:,1], bins, 39)
-    template = estimate_curve(rebinned_projection, rebinned_bins, angles, head, r, num_points)
-    #template = get_straight_template(projection[:,1], r, [0.0 0.0], ang, num_points,bins)
+    #template = estimate_curve(rebinned_projection, rebinned_bins, angles, head, r, num_points)
+    template = get_straight_template(projection[:,1], r, [0.0 0.0], ang, num_points,bins)
     plot!(template[:,1], template[:,2], label=@sprintf "template")
     savefig(@sprintf "test_%d" frame_nr)
     # #
@@ -107,8 +107,8 @@ for (iter, frame_nr) in Base.Iterators.reverse(enumerate(frames2reconstruct))
     recon1 = recon2d_tail(deepcopy(template),r,[ang],bins,projection,max_iter, 0.0, w_u, 1)
     recon2 = recon2d_tail(deepcopy(template),r,[ang],bins,projection,max_iter, 0.0, w_l, 1)
 
-    plot!(recon1[:,1], recon1[:,1])
-    plot!(recon2[:,1], recon2[:,1])
+    plot!(recon1[:,1], recon1[:,2], label="recon1")
+    plot!(recon2[:,1], recon2[:,2], label="recon2")
     best_residual, best_recon[:,:], residual1, residual2 = try_improvement(best_residual, recon1, recon2, ang, bins, projection, best_recon, tail_length, r)
     plot_update(best_recon, best_residual, "initial")
 
@@ -161,7 +161,7 @@ for (iter, frame_nr) in Base.Iterators.reverse(enumerate(frames2reconstruct))
             break
         end
 
-        recon1 = recon2d_tail(deepcopy(best_recon),r,[ang],bins,projection,1, 0.0,  w_u, 1, doplot=true)
+        #recon1 = recon2d_tail(deepcopy(best_recon),r,[ang],bins,projection,1, 0.0,  w_u, 1, doplot=true)
 
         # @info "keeping the best parts and restarting reconstruction"
         # recon_best = keep_best_parts(residual1, deepcopy(best_recon), ang, bins, 1, num_points, tail_length, projection[:,1], r)
