@@ -194,7 +194,7 @@ function div2d!(divp, p) where {T<:AbstractFloat}
     return p1_x
 end
 
-function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_data, sigmas, tau, type, ϵ, nverbose=20) where {T<:AbstractFloat}
+function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_data, sigmas, tau, type, ϵ, nverbose) where {T<:AbstractFloat}
     At = A'
     H, W, C = size(u)
 

@@ -1,8 +1,8 @@
 using TomoForward
-using XfromProjections
+# using XfromProjections
 
 include("../src/iterative/util_convexopt.jl")
-include("../src/iterative/tnv_primaldual.jl")
+include("../src/iterative/ctv_primaldual.jl")
 using LinearAlgebra
 
 # img = imread("test_data/shepplogan512.png")[:,:,1]
@@ -22,6 +22,7 @@ det_origin = 352.2525
 nangles = 128
 angles = deg2rad.(LinRange(0, 360, nangles+1))[1:nangles]
 
+
 detcount = Int(floor(size(img1,1)*1.4))
 proj_geom = ProjGeomFan(0.8, detcount, angles, src_origin, det_origin)
 
@@ -37,12 +38,17 @@ nchannels = 2
 u = zeros(H, W, nchannels)
 p = cat(p1, p2, dims=3)
 
-niter=100
+niter=500
 w_tnv=0.5
-recon2d_ctv_primaldual!(u, A, p, niter, w_tnv, "tnv")
 
-using PyPlot
-imshow(u[:,:,1])
+res = recon2d_ctv_primaldual!(u, A, p, niter, 1.0, "tnv", 1e-6, 1)
+u = res[1]
+res_primals = res[3]
+
+using Plots
+plot(res_primals)
+# using PyPlot
+# imshow(u[:,:,1])
 
 # u0 = zeros(size(img))
 # niter=500
