@@ -4,12 +4,12 @@
 using LinearAlgebra
 using IterTools
 
-include("./utils.jl")
+include("../utils.jl")
 include("../../phantoms/sperm_phantom.jl")
 include("../snake_forward.jl")
 include("../snake.jl")
 include("../curve_utils.jl")
-include("./angle_test.jl")
+include("../estimate_angles.jl")
 using Plots
 using Colors
 using Random
@@ -27,11 +27,11 @@ end
 cwd = @__DIR__
 savepath = normpath(joinpath(@__DIR__, "result"))
 !isdir(savepath) && mkdir(savepath)
-
-images, tracks = get_sperm_phantom(301,grid_size=0.1)
-
+r(s) = 1.0
 detmin, detmax = -36.5, 36.5
 grid = collect(detmin:0.1:detmax)
+images, tracks = get_sperm_phantom(301,r,grid)
+
 bin_width = 0.125
 bins = collect(detmin:bin_width:detmax)
 
@@ -39,7 +39,7 @@ ang = 0.0
 angles, max_iter, stepsize = [ang], 10000, 0.1
 tail_length = curve_lengths(tracks[end])[end]
 num_points = 30
-r(s) = 1.0
+
 frames2reconstruct = collect(101:10:300)
 reconstructions = zeros(num_points,2,length(frames2reconstruct)+1)
 #Add actual track at the end so rand sperm works and we can compare timewise

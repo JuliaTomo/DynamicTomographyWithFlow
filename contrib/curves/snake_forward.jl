@@ -90,7 +90,7 @@ function parallel_forward(vertices,angles,bins)
         angle = angles[k]
         projection = project_curve(vertices, angle, bins)
 
-        sinogram[:,k] = projection#F[bins]
+        sinogram[:,k] = projection
     end
 
     return sinogram
