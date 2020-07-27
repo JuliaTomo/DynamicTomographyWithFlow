@@ -313,14 +313,15 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
             res_primals[it] = res_primal
 
             residual = res_primal
+            res_dual = 0.0
             
             if flag_dual_residual == true
                 res_dual1 = sum(abs.((p1_prev-p1) / sigmas[1] .- (data1_prev .- data1)))
                 res_dual2 = sum(abs.((p2_prev-p2) / sigmas[2] .- (du_prev .- du)))
                 res_dual = (res_dual1 + res_dual2) / (length(p1) + length(p2))    
                 res_duals[it] = res_dual
-                residual += res_dual
             end
+            residual += res_dual
                         
             if residual < ϵ && it > 1
                 @info "$it Stopping condition is met. $res_primal $res_dual"
