@@ -233,10 +233,12 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
 
     if nverbose > 0
         p_adjoint_prev = similar(p_adjoint)
-        p1_prev = similar(p1)
-        p2_prev = similar(p2)
-        du_prev = similar(du)
-        data1_prev = similar(data1)
+        if flag_dual_residual == true
+            p1_prev = similar(p1)
+            p2_prev = similar(p2)
+            du_prev = similar(du)
+            data1_prev = similar(data1)
+        end
     end
 
     # init p1
@@ -248,13 +250,13 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
 
     for it=1:niter
         if nverbose > 0 && it % nverbose == 0
+            copy!(p_adjoint_prev, p_adjoint)
             if flag_dual_residual == true
-                copy!(p_adjoint_prev, p_adjoint)
+                copy!(data1_prev, data1)
                 copy!(p1_prev, p1)
                 copy!(p2_prev, p2)
                 copy!(du_prev, du)
             end
-            copy!(data1_prev, data1)
         end
 
         Threads.@threads for c=1:C
