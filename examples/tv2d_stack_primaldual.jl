@@ -1,10 +1,10 @@
 using TomoForward
 using XfromProjections
 
-# using MKLSparse # uncomment if you've installed MKLSparse, which will boost the performance
+# using MKLSparse # uncomment if you've installed MKLSparse, it will boost the performance
 
 # test slice by slice
-img = zeros(100, 100, 128)
+img = zeros(128, 128, 128)
 img[40:70, 40:60, 50:70] .= 1.0
 
 nslice = size(img, 3)
@@ -20,11 +20,14 @@ end
 
 p = zeros(nangles, nslice, detcount)
 for i=1:nslice
-    p[:,i,:] = reshape(A * vec(img[:,:,i]), nangles, detcount)
+    p[:,i,:] = reshape(A * vec(img[:,:,i]), nangles, detcount);
 end
 
-u = zeros(size(img))
-@time recon2d_slices_sirt!(u, A, p, 20);
+p = permutedims(p, [2,3,1])
+
+u0 = zeros(size(img));
+@time u = recon2d_stack_tv_primaldual!(u0, A, p, 20, 0.1);
 
 # using PyPlot
 # imshow(u[:,:,60])
+

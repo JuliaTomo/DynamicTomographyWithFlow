@@ -65,13 +65,13 @@ Reconstruct 3d image by SIRT slice by slice
 
 # Args
 A : Forward opeartor
-b : Projection data 
+b : Projection data [H x W x nangles]
 u0: Initial guess of 3D image [H x W x nslice]
 niter: number of iterations
 
 u <- u + CA'R(b - Au)
 """
-function recon2d_slices_sirt!(u::Array{T, 3}, A::SparseMatrixCSC{T,Int}, b_::Array{T, 3}, niter::Int; min_value=nothing) where {T <: AbstractFloat}
+function recon2d_stack_sirt!(u::Array{T, 3}, A::SparseMatrixCSC{T,Int}, b_::Array{T, 3}, niter::Int; min_value=nothing) where {T <: AbstractFloat}
     if size(b_, 2) != size(u, 3)
         error("Not supported yet when the detector row count == image slice size")
     end
@@ -83,7 +83,7 @@ function recon2d_slices_sirt!(u::Array{T, 3}, A::SparseMatrixCSC{T,Int}, b_::Arr
     
     nslice = size(u, 3)
 
-    b_axWxH = permutedims(b_, [1, 3, 2])
+    b_axWxH = permutedims(b_, [3, 2, 1])
     bR = reshape(b_axWxH, :, nslice)
     println(size(bR))
     
