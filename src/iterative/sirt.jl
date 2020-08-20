@@ -72,7 +72,7 @@ niter: number of iterations
 u <- u + CA'R(b - Au)
 """
 function recon2d_stack_sirt!(u::Array{T, 3}, A::SparseMatrixCSC{T,Int}, b_::Array{T, 3}, niter::Int; min_value=nothing) where {T <: AbstractFloat}
-    if size(b_, 2) != size(u, 3)
+    if size(b_, 1) != size(u, 3)
         error("Not supported yet when the detector row count == image slice size")
     end
 
