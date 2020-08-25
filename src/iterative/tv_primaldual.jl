@@ -65,7 +65,7 @@ niter: number of iterations
 w_tv: weight for TV term
 c : See 61 page in 2016_Chambolle,Pock_An_introduction_to_continuous_optimization_for_imagingActa_Numerica
 """
-function recon2d_tv_primaldual!(u::Array{T, 2}, A, b, niter::Int, w_tv::T, c=10.0) where {T <: AbstractFloat}
+function recon2d_tv_primaldual!(u::Array{T, 2}, A, b, niter::Int, w_tv::T, c=1.0) where {T <: AbstractFloat}
     @time op_A_norm = util_convexopt.compute_opnorm(A)
     println("@ opnorm of forward projection operator: $op_A_norm")
     ops_norm = [op_A_norm, sqrt(8)]
