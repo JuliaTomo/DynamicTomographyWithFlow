@@ -324,7 +324,7 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
                         
             if residual < ϵ && it > 1
                 @info "$it Stopping condition is met. $res_primal $res_dual"
-                break
+                return (u, it, res_primals, res_duals)
             end
 
             energy = sum(data1.^2) /  length(data1)
