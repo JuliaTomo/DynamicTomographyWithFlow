@@ -1,9 +1,9 @@
 function _compute_sum_rows_cols(A)
-    R_mx1 = zeros(size(A, 1))
-    C_nx1 = zeros(size(A, 2))
+    R_mx1 = zeros(eltype(A), size(A, 1))
+    C_nx1 = zeros(eltype(A), size(A, 2))
 
     sum_row = A * ones( size(A, 2) ) 
-    EPS = eps(Float32) # choose float32 to make it more sparse
+    EPS = eps(eltype(A)) # choose float32 to make it more sparse
     R_mx1[sum_row .> EPS] .= 1 ./ (sum_row[sum_row .> EPS])
 
     sum_col = A' * ones( size(A, 1) )
