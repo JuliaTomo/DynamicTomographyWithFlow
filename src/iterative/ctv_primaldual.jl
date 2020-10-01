@@ -200,7 +200,8 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
 
     # normalize the data fidelity with respect.
     # we consider mean(residual) instead of sum
-    w_data = w_data / length(b0)
+    w_data = w_data / C
+    #w_data = w_data / (C  )
     
     b = reshape(b0, (size(b0, 1)*size(b0, 2), C))
     # b = vec(b0)
