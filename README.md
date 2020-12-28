@@ -14,9 +14,9 @@ pkg> add https://github.com/JuliaTomo/TomoForward.jl
 pkg> add https://github.com/JuliaTomo/XfromProjections.jl
 ```
 
-## Examples
+## Examples and usages
 
-Please see codes in `examples` folder.
+Please see the codes in `examples` folder.
 
 
 # Features
