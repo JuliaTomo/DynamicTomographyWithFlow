@@ -18,6 +18,14 @@ pkg> add https://github.com/JuliaTomo/XfromProjections.jl
 
 Please see the codes in `examples` folder.
 
+- `fbp.jl` : Filtered backprojection for 2D reconstruction
+- `fbp_slices.jl` : Filtered backprojection for reconstructing a stack of 2D images
+- `sirt2d.jl` : SIRT for 2D reconstruction
+- `sirt2d_stack.jl` : SIRT for reconstructing a stack of 2D images
+- `tv2d_primaldual.jl` : Total variation for 2D reconstruction
+- `tv2d_stack_primaldual.jl` : Total variation for reconstructing a stack of 2D images
+- `tnv2d_primaldual.jl` : Total nuclear variation for spectral CT reconstruction
+- `inpainting2d.jl` : sinogram inpainting based on total variation
 
 # Features
 
@@ -41,11 +49,6 @@ Please see the codes in `examples` folder.
 
 - Dynamic with optical flow constraint [Burger et al, 2017]
 
-
-# Todos
-
-- 3D geometry
-- Supporting GPU
 
 # Reference
 
