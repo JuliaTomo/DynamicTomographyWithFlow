@@ -1,6 +1,6 @@
 # Welcome to XfromProjections.jl
 
-XfromProjections aims to provide different solutions X from tomographic projection data, where X can be images but also shapes such as level-set (not supported yet). XfromProjections takes advantage of multi-threading. Currently, we support 2D image reconstructions for paralleal and fan beam. For 3D, we only support a stack of 2D images slice by slice for paralleal beam.
+XfromProjections aims to provide different solutions X from tomographic projection data, where X can be images but also shapes such as level-set (not supported yet). XfromProjections supports 2D image reconstructions for paralleal and fan beam and supports a stack of 2D images (3D images) slice by slice for paralleal beam. XfromProjections takes advantage of multi-threading. (To use multithreading, you need to set the environment variable. e.g., `export JULIA_NUM_THREADS=4`.)
 
 XfromProjectiions depends on [TomoForward](https://github.com/JuliaTomo/TomoForward.jl) package for forward operators of images.
 
@@ -25,7 +25,6 @@ Please see the codes in `examples` folder.
 - `tv2d_primaldual.jl` : Total variation for 2D reconstruction
 - `tv2d_stack_primaldual.jl` : Total variation for reconstructing a stack of 2D images
 - `tnv2d_primaldual.jl` : Total nuclear variation for spectral CT reconstruction
-- `inpainting2d.jl` : sinogram inpainting based on total variation
 
 # Features
 
@@ -39,7 +38,7 @@ Please see the codes in `examples` folder.
 
 - SIRT [Andersen, Kak 1984]
 - Total Variation (TV) by primal dual solver [Chambolle, Pock 2011]
-- Total Nuclear Variation (TNV) [Duran et al, 2016] for spectral CT
+- Collaborative total variation (TNV) [Duran et al, 2016] (possibly for spectral CT)
 
 ## Shape form Projections
 
