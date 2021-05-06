@@ -41,7 +41,8 @@ p = cat(p1, p2, dims=3)
 niter=500
 w_tnv=1.0
 
-res = recon2d_ctv_primaldual!(u, A, p, niter, 1.0001, "tnv", 1e-6, 1, 0.5)
+reg_type = "l∞11" # or "tnv"
+res = recon2d_ctv_primaldual!(u, A, p, niter, 1.0001, reg_type, 1e-6, 1, 0.5)
 u = res[1]
 res_primals = res[3]
 res_duals = res[4]
