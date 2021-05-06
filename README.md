@@ -24,7 +24,7 @@ Please see the codes in `examples` folder.
 - `sirt2d_stack.jl` : SIRT for reconstructing a stack of 2D images
 - `tv2d_primaldual.jl` : Total variation for 2D reconstruction
 - `tv2d_stack_primaldual.jl` : Total variation for reconstructing a stack of 2D images
-- `tnv2d_primaldual.jl` : Total nuclear variation for spectral CT reconstruction
+- `ctv2d_primaldual.jl` : L∞11 norm or total nuclear variation for spectral CT reconstruction
 
 # Features
 
