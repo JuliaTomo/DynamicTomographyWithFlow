@@ -1,4 +1,5 @@
 using LinearAlgebra
+
 function could_be_sperm_tail(tail_length, centerline_points; smoothness=3.0)
     #Make a smoothed spline so we don't get changes from 'noise'
     L = size(centerline_points,1)
@@ -175,28 +176,43 @@ function count_parallel(projection, r; limit=5)
     return changes
 end
 
+function angle_average(center_line)
+    cks = get_ck(center_line)
+
+    angles_est = angle.(cks[2:end])
+    average_angle = norm(angles_est)
+end
+
+function cost(center_line, ang, bins, r, projection)
+    residual = norm(parallel_forward(get_outline(center_line, r)[1], [ang], bins) - projection)
+    angl = angle_average(center_line)
+    return residual #+ angl
+end
+
 #TODO could check if they are parallel in same place
-function try_improvement(best_residual, recon1, recon2, ang, bins, projection, best_recon, tail_length, r)
-    residual1 = norm(parallel_forward(get_outline(recon1, r)[1], [ang], bins) - projection)
-    residual2 = norm(parallel_forward(get_outline(recon2, r)[1], [ang], bins) - projection)
+function try_improvement(best_cost, recon1, recon2, ang, bins, projection, best_recon, tail_length, r)
+    cost1= cost(recon1, ang, bins, r, projection)#norm(parallel_forward(get_outline(recon1, r)[1], [ang], bins) - projection)
+    cost2= cost(recon2, ang, bins, r, projection)#norm(parallel_forward(get_outline(recon2, r)[1], [ang], bins) - projection)
+
+
     #ok1, k1, length_ok1, prime1 = could_be_sperm_tail(tail_length, recon1)
     #ok2, k2, length_ok2, prime2 = could_be_sperm_tail(tail_length, recon2)
 
     #k = count_parallel(projection[:,1], r, limit = 30)
 
     # c1 = norm(residual1)+max(0,abs(ok1-1))#+abs(maximum(abs.(prime1))-1.0)
-    if residual1 < best_residual#  && length_ok1
-        best_residual = residual1#norm(residual1)
+    if cost1 < best_cost#  && length_ok1
+        best_cost = cost1#norm(residual1)
         best_recon = recon1
     end
     #
     # c2 = norm(residual2)+max(0,abs(ok2-1))#+abs(maximum(abs.(prime2))-1.0)
-    if residual2 < best_residual#  && length_ok2
-        best_residual = residual2#norm(residual2)
+    if cost2 < best_cost#  && length_ok2
+        best_cost = cost2#norm(residual2)
         best_recon = recon2
     end
 
-    return best_residual, best_recon, residual1, residual2
+    return best_cost, best_recon, cost1, cost2
 end
 
 function flip(centerline_points, flip_point, ang)

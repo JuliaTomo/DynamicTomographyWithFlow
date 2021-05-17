@@ -16,6 +16,7 @@ function displace(centerline_points, force, radius_func, w; doplot=false)
     L = size(centerline_points,1)
     (outline_xy, normal) = get_outline(centerline_points, radius_func)
 
+
     #println(size(force), size(normal), size(w))
 
     forces = (force.*normal).*w
@@ -32,23 +33,6 @@ function displace(centerline_points, force, radius_func, w; doplot=false)
 
     displaced_centerline = cat(head', displaced_centerline, dims = 1)
     displaced_centerline = cat(displaced_centerline, tail', dims = 1)
-
-    #enforce π/3 constraint - way to ensure some degree of smoothness
-    # cks = get_ck(displaced_centerline)
-    #
-    # angles_1 = angle.(cks[2:end])
-    # angles_2 = angle.(cks[1:end-1])
-    #
-    # difference = abs.(angles_1-angles_2)
-    # signs = sign.(angles_2-angles_1)
-    #
-    # violation_index = findall(d-> d > π/3, difference)
-    # if length(violation_index) > 0
-    #
-    #     cks[violation_index.+1] .= abs.(cks[violation_index]).*ℯ.^(im*signs[violation_index]*π/3)
-    #
-    #     displaced_centerline = get_xy(cks)
-    # end
 
     if doplot
         plot!(outline_xy[:,1], outline_xy[:,2], label="original")

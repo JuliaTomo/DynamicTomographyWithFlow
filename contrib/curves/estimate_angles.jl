@@ -41,14 +41,29 @@ function rebin(projection, bins, s)
     return b', p'
 end
 
+function get_fit(xy, angles, bins, projection, model, p0)
+
+    fit = curve_fit(model, xy[:,1], xy[:,2], p0)
+    #fit_curve = cat(xy[:,1], model(xy[:,1], coef(fit)), dims=2)
+    outline = get_outline(xy, r)[1]
+
+    #Define angles and bin  width for forward projection
+    projection_fit = parallel_forward(outline,angles,bins)
+    end1, end2 = get_projection_ends(projection_fit, r)
+    cost = Inf
+    if typeof(end1) != Nothing && typeof(end2) != Nothing
+        cost = norm(fit.resid)+norm(projection_fit[end1:end2]-projection[end1:end2])
+    end
+    return cost, fit
+end
+
 function estimate_curve(projection, bins, angles, head, r, num_points)
     ##################################### MODEL ####################################################
     @. model(x,p) = p[1]*sin(p[2]*x-p[3])+p[4]*sin(p[2]*x-2*p[3]+p[5])
-
     y1 = 4.0
     y2 = 0.3*y1
     #p = [y1,k,w0,y2,ϕ]
-    p0 = [1,0.2,30.0,y2,10.0]
+    p0 = [y1,0.2,30.0,y2,10.0]
     ################################################################################################
     #estimate angles from projection
     bin_width = bins[4] - bins[3]
@@ -95,23 +110,13 @@ function estimate_curve(projection, bins, angles, head, r, num_points)
 
         xy = get_xy(cks)[2:end,:]
 
-        xdata = xy[:,1]
-        ydata = xy[:,2]
+        cost, fit = get_fit(xy,angles,bins,projection, model, p0)
 
-        fit = curve_fit(model, xdata, ydata, p0)
-        fit_curve = cat(xy[:,1], model(xy[:,1], coef(fit)), dims=2)
-        outline = get_outline(fit_curve, r)[1]
-
-        #Define angles and bin  width for forward projection
-        projection_fit = parallel_forward(outline,angles,bins)
-        end1, end2 = get_projection_ends(projection_fit, r)
-        if typeof(end1) != Nothing && typeof(end2) != Nothing
-            cost = sum(fit.resid.^2)/length(fit.resid) + sum((projection_fit[end1:end2]-projection[end1:end2]).^2)/length(projection)
-            if cost < best_fit
-                global best_fit = cost
-                global best_curve =xy
-            end
+        if cost < best_fit
+            global best_fit = cost
+            global best_curve =xy
         end
+
     end
 
     #get curve as fit by model
@@ -120,6 +125,10 @@ function estimate_curve(projection, bins, angles, head, r, num_points)
     st, en = best_curve[1,1], best_curve[end,1]
     xs = range(st, en, length=num_points)
     xy = cat(xs, model(xs, coef(fit)), dims=2)
+
+    shift = xy[1,:]
+
+    xy = xy.-shift'
 
     return xy
 end

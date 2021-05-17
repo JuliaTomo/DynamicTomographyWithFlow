@@ -18,11 +18,11 @@ using Random
 Random.seed!(0)
 
 function reconstruct(template, r, angles, bins, projection, max_iter, w, s, degree, k, length)
-    num_points = size(template, 1)
+    #num_points = size(template, 1)
     centerline_points = recon2d_tail(deepcopy(template),r,angles,bins,projection,max_iter, s, w, degree)
-    residual = parallel_forward(get_outline(centerline_points, r)[1], angles, bins) - projection
-    centerline_points = keep_best_parts(residual, centerline_points, ang, bins, k, num_points, length, projection, r)
-    centerline_points = recon2d_tail(deepcopy(centerline_points),r,[ang],bins,projection,1000, s, w, degree)
+    #residual = parallel_forward(get_outline(centerline_points, r)[1], angles, bins) - projection
+    #centerline_points = keep_best_parts(residual, centerline_points, ang, bins, k, num_points, length, projection, r)
+    #centerline_points = recon2d_tail(deepcopy(centerline_points),r,[ang],bins,projection,1000, s, w, degree)
     return centerline_points
 end
 
@@ -105,12 +105,12 @@ for (iter, frame_nr) in Base.Iterators.reverse(enumerate(frames2reconstruct))
 
 
 
-    heatmap(grid, grid, Gray.(images[:,:,frame_nr]), yflip=false, aspect_ratio=:equal, framestyle=:none, legend=true)
+    heatmap(grid, grid, Gray.(images[:,:,frame_nr]), yflip=false, aspect_ratio=:equal, framestyle=:none, legend=false)
     cd(savepath)
     @info "setting up template"
     rebinned_bins, rebinned_projection = rebin(projection[:,1], bins, 39)
-    #template = estimate_curve(rebinned_projection, rebinned_bins, angles, head, r, num_points)
-    template = get_straight_template(projection[:,1], r, [0.0 0.0], ang, num_points,bins)
+    template = estimate_curve(rebinned_projection, rebinned_bins, angles, head, r, num_points)
+    #template = get_straight_template(projection[:,1], r, [0.0 0.0], ang, num_points,bins)
 
 
     best_recon = deepcopy(template)
@@ -122,27 +122,30 @@ for (iter, frame_nr) in Base.Iterators.reverse(enumerate(frames2reconstruct))
 
     #recon1 = recon2d_tail(deepcopy(template),r,[ang],bins,projection,1, 0.0, w_u, 1, doplot=true)
 
-    recon1 = reconstruct(template, r, angles, bins, projection, max_iter, w_u, s, degree, k, tail_length)
-    recon2 = reconstruct(template, r, angles, bins, projection, max_iter, w_l, s, degree, k, tail_length)
 
-    best_cost, best_recon[:,:], residual1, residual2 = try_improvement(best_cost, recon1, recon2, ang, bins, projection, best_recon, tail_length, r)
-    plot_update(recon1, residual1, "recon1")
-    plot_update(recon2, residual2, "recon2")
-    plot_update(best_recon, best_cost, "initial")
 
-    for i = 1:1
-        # if best_cost < 1.0
-        #     break
-        # end
+    for i = 1:10
+        recon1 = reconstruct(best_recon, r, angles, bins, projection, max_iter, w_u, s, degree, k, tail_length)
+        recon2 = reconstruct(best_recon, r, angles, bins, projection, max_iter, w_l, s, degree, k, tail_length)
+
+        best_cost, best_recon[:,:], residual1, residual2 = try_improvement(best_cost, recon1, recon2, ang, bins, projection, best_recon, tail_length, r)
+
+        label_txt1 = recon1
+        label_txt2 = recon2
+        plot_update(recon2, residual1, label_txt1)
+        plot_update(recon1, residual2, label_txt2)
+        plot_update(best_recon, best_cost, "initial")
+
+
         @info "checking if any parts could need mirroring"
-        initial1 = deepcopy(recon1)
-        initial2 = deepcopy(recon2)
+        initial1 = deepcopy(best_recon)
+        initial2 = deepcopy(best_recon)
 
         for flip_pt=1:num_points
             recon1_flipped = flip(initial1,flip_pt,ang)
             recon2_flipped = flip(initial2,flip_pt,ang)
 
-            best_cost, best_recon[:,:], residual1, residual2 = try_improvement(best_cost, recon1_flipped, recon2_flipped, ang, bins, projection, best_recon, tail_length, r)
+            #best_cost, best_recon[:,:], residual1, residual2 = try_improvement(best_cost, recon1_flipped, recon2_flipped, ang, bins, projection, best_recon, tail_length, r)
 
             #mirror and reconstruct with weights on both sides
             recon1 = reconstruct(recon1_flipped, r, angles, bins, projection, 100, w_u, s, degree, k, tail_length)
@@ -158,23 +161,23 @@ for (iter, frame_nr) in Base.Iterators.reverse(enumerate(frames2reconstruct))
         #     break
         # end
 
-        for (flip_i,flip_j) in subsets(1:num_points, Val{2}())
-            recon1_flipped = flip(initial1,flip_i,ang)
-            recon1_flipped = flip(recon1_flipped,flip_j,ang)
-            recon2_flipped = flip(initial2,flip_i,ang)
-            recon2_flipped = flip(recon2_flipped,flip_j,ang)
-
-            best_cost, best_recon[:,:], residual1, residual2 = try_improvement(best_cost, recon1_flipped, recon2_flipped, ang, bins, projection, best_recon, tail_length, r)
-
-            recon1 = reconstruct(recon1_flipped, r, angles, bins, projection, 100, w_u, s, degree, k, tail_length)
-            recon2 = reconstruct(recon1_flipped, r, angles, bins, projection, 100, w_l, s, degree, k, tail_length)
-            best_cost, best_recon[:,:], residual1, residual2 = try_improvement(best_cost, recon1, recon2, ang, bins, projection, best_recon, tail_length, r)
-
-            recon1 = reconstruct(recon2_flipped, r, angles, bins, projection, 100, w_u, s, degree, k, tail_length)
-            recon2 = reconstruct(recon2_flipped, r, angles, bins, projection, 100, w_l, s, degree, k, tail_length)
-            best_cost, best_recon[:,:], residual1, residual2 = try_improvement(best_cost, recon1, recon2, ang, bins, projection, best_recon, tail_length, r)
-        end
-        plot_update(best_recon, best_cost, "flip2")
+        # for (flip_i,flip_j) in subsets(1:num_points, Val{2}())
+        #     recon1_flipped = flip(initial1,flip_i,ang)
+        #     recon1_flipped = flip(recon1_flipped,flip_j,ang)
+        #     recon2_flipped = flip(initial2,flip_i,ang)
+        #     recon2_flipped = flip(recon2_flipped,flip_j,ang)
+        #
+        #     best_cost, best_recon[:,:], residual1, residual2 = try_improvement(best_cost, recon1_flipped, recon2_flipped, ang, bins, projection, best_recon, tail_length, r)
+        #
+        #     recon1 = reconstruct(recon1_flipped, r, angles, bins, projection, 100, w_u, s, degree, k, tail_length)
+        #     recon2 = reconstruct(recon1_flipped, r, angles, bins, projection, 100, w_l, s, degree, k, tail_length)
+        #     best_cost, best_recon[:,:], residual1, residual2 = try_improvement(best_cost, recon1, recon2, ang, bins, projection, best_recon, tail_length, r)
+        #
+        #     recon1 = reconstruct(recon2_flipped, r, angles, bins, projection, 100, w_u, s, degree, k, tail_length)
+        #     recon2 = reconstruct(recon2_flipped, r, angles, bins, projection, 100, w_l, s, degree, k, tail_length)
+        #     best_cost, best_recon[:,:], residual1, residual2 = try_improvement(best_cost, recon1, recon2, ang, bins, projection, best_recon, tail_length, r)
+        # end
+        # plot_update(best_recon, best_cost, "flip2")
     end
     reconstructions[:,:,iter] = best_recon
     #plot!(best_recon[:,1], best_recon[:,2], aspect_ratio=:equal, label=best_cost, linewidth=2)
