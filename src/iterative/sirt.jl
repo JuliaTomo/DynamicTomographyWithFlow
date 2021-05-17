@@ -1,9 +1,9 @@
 function _compute_sum_rows_cols(A)
-    R_mx1 = zeros(size(A, 1))
-    C_nx1 = zeros(size(A, 2))
+    R_mx1 = zeros(eltype(A), size(A, 1))
+    C_nx1 = zeros(eltype(A), size(A, 2))
 
     sum_row = A * ones( size(A, 2) ) 
-    EPS = eps(Float32) # choose float32 to make it more sparse
+    EPS = eps(eltype(A)) # choose float32 to make it more sparse
     R_mx1[sum_row .> EPS] .= 1 ./ (sum_row[sum_row .> EPS])
 
     sum_col = A' * ones( size(A, 1) )
@@ -65,14 +65,14 @@ Reconstruct 3d image by SIRT slice by slice
 
 # Args
 A : Forward opeartor
-b : Projection data 
+b : Projection data [H x W x nangles]
 u0: Initial guess of 3D image [H x W x nslice]
 niter: number of iterations
 
 u <- u + CA'R(b - Au)
 """
-function recon2d_slices_sirt!(u::Array{T, 3}, A::SparseMatrixCSC{T,Int}, b_::Array{T, 3}, niter::Int; min_value=nothing) where {T <: AbstractFloat}
-    if size(b_, 2) != size(u, 3)
+function recon2d_stack_sirt!(u::Array{T, 3}, A::SparseMatrixCSC{T,Int}, b_::Array{T, 3}, niter::Int; min_value=nothing) where {T <: AbstractFloat}
+    if size(b_, 1) != size(u, 3)
         error("Not supported yet when the detector row count == image slice size")
     end
 
@@ -83,7 +83,7 @@ function recon2d_slices_sirt!(u::Array{T, 3}, A::SparseMatrixCSC{T,Int}, b_::Arr
     
     nslice = size(u, 3)
 
-    b_axWxH = permutedims(b_, [1, 3, 2])
+    b_axWxH = permutedims(b_, [3, 2, 1])
     bR = reshape(b_axWxH, :, nslice)
     println(size(bR))
     

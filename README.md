@@ -1,6 +1,6 @@
 # Welcome to XfromProjections.jl
 
-XfromProjections aims to provide different solutions X from tomographic projection data, where X can be images but also shapes such as level-set (not supported yet). XfromProjections takes advantage of multi-threading. Currently, we support 2D image reconstructions for paralleal and fan beam. For 3D, we only support a stack of 2D images slice by slice for paralleal beam.
+XfromProjections aims to provide different solutions X from tomographic projection data, where X can be images but also shapes such as level-set (not supported yet). XfromProjections supports 2D image reconstructions for paralleal and fan beam and supports a stack of 2D images (3D images) slice by slice for paralleal beam. XfromProjections takes advantage of multi-threading. (To use multithreading, you need to set the environment variable. e.g., `export JULIA_NUM_THREADS=4`.)
 
 XfromProjectiions depends on [TomoForward](https://github.com/JuliaTomo/TomoForward.jl) package for forward operators of images.
 
@@ -14,10 +14,17 @@ pkg> add https://github.com/JuliaTomo/TomoForward.jl
 pkg> add https://github.com/JuliaTomo/XfromProjections.jl
 ```
 
-## Examples
+## Examples and usages
 
-Please see codes in `examples` folder.
+Please see the codes in `examples` folder.
 
+- `fbp.jl` : Filtered backprojection for 2D reconstruction
+- `fbp_slices.jl` : Filtered backprojection for reconstructing a stack of 2D images
+- `sirt2d.jl` : SIRT for 2D reconstruction
+- `sirt2d_stack.jl` : SIRT for reconstructing a stack of 2D images
+- `tv2d_primaldual.jl` : Total variation for 2D reconstruction
+- `tv2d_stack_primaldual.jl` : Total variation for reconstructing a stack of 2D images
+- `ctv2d_primaldual.jl` : L∞11 norm or total nuclear variation for spectral CT reconstruction
 
 # Features
 
@@ -31,7 +38,7 @@ Please see codes in `examples` folder.
 
 - SIRT [Andersen, Kak 1984]
 - Total Variation (TV) by primal dual solver [Chambolle, Pock 2011]
-- Total Nuclear Variation (TNV) [Duran et al, 2016] for spectral CT
+- Collaborative total variation (TNV) [Duran et al, 2016] (possibly for spectral CT)
 
 ## Shape form Projections
 
@@ -41,11 +48,6 @@ Please see codes in `examples` folder.
 
 - Dynamic with optical flow constraint [Burger et al, 2017]
 
-
-# Todos
-
-- 3D geometry
-- Supporting GPU
 
 # Reference
 

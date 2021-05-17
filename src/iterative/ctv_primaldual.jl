@@ -201,6 +201,7 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
     # normalize the data fidelity with respect.
     # we consider mean(residual) instead of sum
     w_data = w_data / C
+    #w_data = w_data / (C  )
     
     b = reshape(b0, (size(b0, 1)*size(b0, 2), C))
     # b = vec(b0)
@@ -218,22 +219,42 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
     du = similar(p2)
     divp2 = similar(p2)
     
-    data1 = similar(b)
+    data1 = copy(b)
 
     invσ11 = 1. / (sigmas[1] / w_data + 1.0) # l2 data, (Handa Sec 8.1)
     invσ2 = 1. / sigmas[2]
 
-    # variables for computinig residuals
-    du_prev = similar(p2)
-    p_adjoint_prev = similar(p_adjoint)
-    # p1_prev = similar(p1)
-    # p2_prev = similar(p2)
-
     res_primals = zeros(niter)
+    res_duals = zeros(niter)
+
+    if nverbose > 0
+        p_adjoint_prev = similar(p_adjoint)
+    #    if flag_dual_residual == true
+            # variables for computinig residuals
+    
+            p1_prev = similar(p1)
+            p2_prev = similar(p2)
+            du_prev = similar(du)
+            data1_prev = similar(data1)
+        # end
+    end
+
+    # init p1
+    # Threads.@threads for c=1:C
+    #     @views mul!(data1[:,c], A, vec(ubar[:,:,c]))
+    #     p1[:,c] .= data1[:,c]
+    #     @views data1[:,c] .-= b[:,c]
+    # end
 
     for it=1:niter
-        if it % nverbose == 0
+        if nverbose > 0 && it % nverbose == 0
             copy!(p_adjoint_prev, p_adjoint)
+            # if flag_dual_residual == true
+                copy!(data1_prev, data1)
+                copy!(p1_prev, p1)
+                copy!(p2_prev, p2)
+                copy!(du_prev, du)
+            # end
         end
 
         Threads.@threads for c=1:C
@@ -266,6 +287,7 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
         else
             error("not supported type")
         end
+
         # prox_nuclear!(g, p2_temp, invσ2)
         p2 .+= sigmas[2] .* ( du .- g )
 
@@ -275,8 +297,8 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
         end
             
         # primal update
-        u .= u .- tau .* p_adjoint
-        # u .= max.(u .- tau .* p_adjoint, 0.0) # positivity constraint
+        # u .= u .- tau .* p_adjoint
+        u .= max.(u .- tau .* p_adjoint, 0.0) # positivity constraint
 
         # acceleration
         ubar .= 2 .* u .- u_prev
@@ -285,24 +307,33 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
         # if it > 1
         # end
 
-        if it % nverbose == 0
+        if nverbose > 0 && it % nverbose == 0
             # compute primal energy (optional)
-            res_primal = sum(abs.((u_prev .- u) / tau .- (p_adjoint_prev .- p_adjoint))) / length(u)
-            # res_dual = sum(abs.((p_adjoint_prev .- p_adjoint) / sigma .- Ddu ))  / length(u)
+            res_primal = sum(abs.((u_prev - u) / tau .- (p_adjoint_prev .- p_adjoint))) / length(u)
             res_primals[it] = res_primal
-            # res_dual = p1_prev .- p1
-            if res_primal < ϵ && it > 1
-                @info "$it Stopping condition is met. $res_primal"
-                return it
+
+            residual = res_primal
+            res_dual = 0.0
+            
+            # if flag_dual_residual == true
+                res_dual1 = sum(abs.((p1_prev-p1) / sigmas[1] .- (data1_prev .- data1)))
+                res_dual2 = sum(abs.((p2_prev-p2) / sigmas[2] .- (du_prev .- du)))
+                res_dual = (res_dual1 + res_dual2) / (length(p1) + length(p2))    
+                res_duals[it] = res_dual
+            # end
+            residual += res_dual
+                        
+            if residual < ϵ && it > 1
+                @info "$it Stopping condition is met. $res_primal $res_dual"
+                return (u, it, res_primals, res_duals)
             end
 
             energy = sum(data1.^2) /  length(data1)
-            println("$it, data term: $energy, primal_res: $res_primal")
+            println("$it, data term: $energy, primal_res: $res_primal, dual_res: $res_dual")
         end
-
     end
 
-    return (u, niter, res_primals)
+    return (u, niter, res_primals, res_duals)
 end
 
 """
@@ -322,7 +353,7 @@ c : See 61 page in 2016_Chambolle,Pock_An_introduction_to_continuous_optimizatio
 For Collaborative TV, refer to:
 Duran,Moeller,Sbert,Cremers_On_the_Implementation_of_Collaborative_TV_Regularization_-_Application_toImage_Processing_On_Line
 """
-function recon2d_ctv_primaldual!(u::Array{T, 3}, A, b::Array{T, 3}, niter::Int, w_data, type="tnv", ϵ=1e-6, nverbose=10, c=10.0) where {T <: AbstractFloat}
+function recon2d_ctv_primaldual!(u::Array{T, 3}, A, b::Array{T, 3}, niter::Int, w_data, type="tnv", ϵ=1e-6, nverbose=10, c=1.0) where {T <: AbstractFloat}
     if size(u, 3) != size(b, 3)
         error("The channel size of u and b should match.")
     end
@@ -337,6 +368,10 @@ function recon2d_ctv_primaldual!(u::Array{T, 3}, A, b::Array{T, 3}, niter::Int, 
     end
 
     tau = c / sum(ops_norm)
+
+    sigmas .*= 0.99
+    tau *= 0.99
+
     println("@ step sizes sigmas: ", sigmas, ", tau: $tau")
     
     return _recon2d_ctv_primaldual!(u, A, b, niter, w_data, sigmas, tau, type, ϵ, nverbose)

@@ -82,7 +82,7 @@ function recon2d_tv_primaldual!(u::Array{T, 2}, A, b, niter::Int, w_tv::T, c=10.
 end
 
 
-function _recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter::Int, w_tv::T, sigmas, tau::T) where {T<:AbstractFloat}
+function _recon2d_stack_tv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter::Int, w_tv::T, sigmas, tau::T) where {T<:AbstractFloat}
     H, W, nslice = size(u)
     
     At = sparse(A') # this significatnly improves the performance
@@ -90,7 +90,7 @@ function _recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, nite
     ubar = deepcopy(u)
     u_prev = similar(u)
     
-    b_axWxH = permutedims(b0, [1, 3, 2]) # PermutedDimsArray(A, (3,1,2));
+    b_axWxH = permutedims(b0, [3, 2, 1]) # PermutedDimsArray(A, (3,1,2));
     b = reshape(b_axWxH, :, nslice)
     
     halfslice = Int(floor(nslice/2))
@@ -158,7 +158,7 @@ Reconstruct a 2d image by TV-L2 model using Primal Dual optimization method
 - w_tv: weight for TV term
 - c : See 61 page in 2016_Chambolle,Pock_An_introduction_to_continuous_optimization_for_imagingActa_Numerica
 """
-function recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b::Array{T, 3}, niter::Int, w_tv::T, c=10.0) where {T <: AbstractFloat}
+function recon2d_stack_tv_primaldual!(u::Array{T, 3}, A, b::Array{T, 3}, niter::Int, w_tv::T, c=10.0) where {T <: AbstractFloat}
     @time op_A_norm = util_convexopt.compute_opnorm(A)
     println("@ opnorm of forward projection operator: $op_A_norm")
     ops_norm = [op_A_norm, sqrt(8)]
@@ -171,6 +171,8 @@ function recon2d_slices_tv_primaldual!(u::Array{T, 3}, A, b::Array{T, 3}, niter:
 
     tau = c / sum(ops_norm)
     println("@ step sizes sigmas: ", sigmas, ", tau: $tau")
+
+
     
-    residual = _recon2d_slices_tv_primaldual!(u, A, b, niter, w_tv, sigmas, tau)
+    residual = _recon2d_stack_tv_primaldual!(u, A, b, niter, w_tv, sigmas, tau)
 end

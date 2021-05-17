@@ -39,16 +39,22 @@ u = zeros(H, W, nchannels)
 p = cat(p1, p2, dims=3)
 
 niter=500
-w_tnv=0.5
+w_tnv=1.0
 
-res = recon2d_ctv_primaldual!(u, A, p, niter, 1.0, "tnv", 1e-6, 1)
+reg_type = "l∞11" # or "tnv"
+res = recon2d_ctv_primaldual!(u, A, p, niter, 1.0001, reg_type, 1e-6, 1, 0.5)
 u = res[1]
 res_primals = res[3]
+res_duals = res[4]
+residuals = res[3] + res[4]
 
 using Plots
-plot(res_primals)
+plot(res_primals, yaxis=:log)
+# plot(res_primals)
+plot!(res_duals)
+plot!(residuals)
 # using PyPlot
-# imshow(u[:,:,1])
+# plot(Gray.(u[:,:,1]))
 
 # u0 = zeros(size(img))
 # niter=500
