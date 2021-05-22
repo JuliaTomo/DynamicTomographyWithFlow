@@ -275,7 +275,10 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
 
         u_prev .= u
 
-        # projection onto dual of (S1,l1)
+        # -------- update dual p2
+        # projection onto dual of tnv, or ..
+        # prox_{lambda f*} (x) = x - lambda prox_{f / lambda} (x / lambda)
+        # where x = r + sigma Du in the paper
         p2_temp .= du .+ invσ2 .* p2
 
         if type == "tnv" || type == "S1l1"
@@ -288,9 +291,10 @@ function _recon2d_ctv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter, w_d
             error("not supported type")
         end
 
-        # prox_nuclear!(g, p2_temp, invσ2)
+        # since x = r + sigma Du
         p2 .+= sigmas[2] .* ( du .- g )
 
+        # -------- update primal
         Threads.@threads for c=1:C
             p_adjoint_c = view(p_adjoint, :, :, c)
             p_adjoint_c .-= div2d!(view(p2_temp,:,:,:,c), view(p2,:,:,:,c))
