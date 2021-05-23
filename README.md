@@ -26,6 +26,8 @@ Please see the codes in `examples` folder.
 - `tv2d_stack_primaldual.jl` : Total variation for reconstructing a stack of 2D images
 - `ctv2d_primaldual.jl` : L∞11 norm or total nuclear variation for spectral CT reconstruction
 
+Regarding the code about the paper in submission "Material classification from sparse spectral X-ray CT using vectorial total variation based on L infinity norm", please refer to `ctv2d_primaldual.jl`.
+
 # Features
 
 ## Image reconstruction from Projections
