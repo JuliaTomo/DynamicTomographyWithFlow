@@ -1,8 +1,5 @@
 using TomoForward
-# using XfromProjections
-
-include("../src/iterative/util_convexopt.jl")
-include("../src/iterative/ctv_primaldual.jl")
+using XfromProjections
 using LinearAlgebra
 
 # img = imread("test_data/shepplogan512.png")[:,:,1]
@@ -50,13 +47,8 @@ residuals = res[3] + res[4]
 
 using Plots
 plot(res_primals, yaxis=:log)
-# plot(res_primals)
 plot!(res_duals)
 plot!(residuals)
-# using PyPlot
-# plot(Gray.(u[:,:,1]))
 
-# u0 = zeros(size(img))
-# niter=500
-# lambdas = [0.01, 0.1, 0.6]
-# u = zeros(H, W, 5)
+# plot reconstruction image for the first channel
+plot(Gray.(u[:,:,1]))
