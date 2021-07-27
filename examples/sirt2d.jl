@@ -16,7 +16,8 @@ u = zeros(size(img))
 niter=100
 @time recon2d_sirt!(u, A, p, niter)
 
-# using PyPlot
-# imshow(u, cmap="gray")
-# title("reconstructed image")
-# show()
+using PyPlot
+pygui(true)
+imshow(u, cmap="gray")
+title("reconstructed image")
+show()

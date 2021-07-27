@@ -17,15 +17,16 @@ function radon_operator(height, width, detcount, angles)
     A = fp_op_parallel2d_line(proj_geom, height, width, detmin,detmax, detmin,detmax)
     return A
 end
-
-images, tracks = get_sperm_phantom(301,grid_size=0.1)
-frames = images[:,:,collect(271:10:300)]
+grid = collect(detmin:0.1:detmax)
 r(s) = 1.0
+
+images, tracks = get_sperm_phantom(301,r,grid)
+frames = images[:,:,collect(271:10:300)]
+
 w_tv = 0.01
 w_flow  = 0.001
 c=10.0
 
-grid = collect(detmin:0.1:detmax)
 
 detcount = Int(floor(H*1.4))
 

@@ -21,7 +21,9 @@ end
 
 angles = [0.0,π/3,2*π/3]
 #Create phantom at smaller gridsize than reconstruction
-frames, tracks = get_sperm_phantom(2,grid_size=0.1)
+grid = collect(detmin:0.1:detmax)
+r(s) = 1.0
+frames, tracks = get_sperm_phantom(2,r,grid)
 detcount = Int(floor(H*1.4))
 #match size of input image (generating data)
 As = map(t -> radon_operator(size(frames[:,:,1],1),size(frames[:,:,1],2),detcount, angles),1:size(frames)[3])
@@ -62,7 +64,7 @@ for w_tv = w_tvs
         niter=50
         @suppress begin
             us_flow = recon2d_tv_primaldual_flow(As, bs, deepcopy(us_tv), niter, 20, w_tv, w_flow, c)
-            filenamepng = @sprintf "flow_2ms_%f_%f" w_tv w_flow;
+            filenamepng = @sprintf "flow_2ms_%f_%f_.png" w_tv w_flow;
             #PLOT
             plot(Gray.(us_flow[:,:,1]), aspect_ratio=:equal, framestyle=:none, legend=false, yflip=false)
             savefig(filenamepng)
@@ -73,7 +75,7 @@ end
 
 angles = rand(1:0.001:π,3)
 #Create phantom at smaller gridsize than reconstruction
-frames = get_sperm_phantom(2,grid_size=0.1)
+frames = get_sperm_phantom(2,r, grid)
 detcount = Int(floor(H*1.4))
 #match size of input image (generating data)
 As = map(t -> radon_operator(size(frames[:,:,1],1),size(frames[:,:,1],2),detcount, angles[t]),1:size(frames)[3])
@@ -103,7 +105,7 @@ for w_tv = w_tvs
         niter=50
         @suppress begin
             us_flow = recon2d_tv_primaldual_flow(As, bs, deepcopy(us_tv), niter, 20, w_tv, w_flow, c)
-            filenamepng = @sprintf "flow_radn_ang_2ms_%f_%f" w_tv w_flow;
+            filenamepng = @sprintf "flow_radn_ang_2ms_%f_%f_.png" w_tv w_flow;
             #PLOT
             plot(Gray.(us_flow[:,:,1]), aspect_ratio=:equal, framestyle=:none, legend=false, yflip=false)
             savefig(filenamepng)
