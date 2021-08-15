@@ -1,6 +1,6 @@
 # Welcome to XfromProjections.jl
 
-XfromProjections aims to provide different solutions X from tomographic projection data, where X can be images but also shapes such as level-set (not supported yet). XfromProjections supports 2D image reconstructions for paralleal and fan beam and supports a stack of 2D images (3D images) slice by slice for paralleal beam. XfromProjections takes advantage of multi-threading. (To use multithreading, you need to set the environment variable. e.g., `export JULIA_NUM_THREADS=4`.)
+XfromProjections provides image reconstruction from tomographic projection data. XfromProjections supports 2D image reconstructions for paralleal and fan beam and supports a stack of 2D images (3D images) slice by slice for paralleal beam. XfromProjections takes advantage of multi-threading. (To use multithreading, you can run julia with the option `julia -t2` e.g. if you want to use 2 threads.)
 
 XfromProjectiions depends on [TomoForward](https://github.com/JuliaTomo/TomoForward.jl) package for forward operators of images.
 
