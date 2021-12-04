@@ -22,9 +22,3 @@ niter=500
 lambda = 0.01
 u0 = zeros(size(img))
 recon2d_tv_primaldual!(u0, A, p, niter, lambda)
-
-using PyPlot
-pygui(true)
-imshow(u0, cmap="gray")
-title("reconstructed image")
-show()

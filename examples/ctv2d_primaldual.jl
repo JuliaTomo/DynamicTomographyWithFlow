@@ -46,9 +46,9 @@ res_duals = res[4]
 residuals = res[3] + res[4]
 
 using Plots
-Plots.plot(res_primals, yaxis=:log)
-Plots.plot!(res_duals)
-Plots.plot!(residuals)
+plot(res_primals, yaxis=:log)
+plot!(res_duals)
+plot!(residuals)
 
 # plot reconstruction image for the first channel
-Plots.plot(Gray.(u[:,:,1]))
+plot(Gray.(u[:,:,1]))

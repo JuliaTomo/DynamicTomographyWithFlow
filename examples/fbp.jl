@@ -36,7 +36,6 @@ fbp_img_strip = reshape(fbp_strip, size(img))
 bp_img_strip = reshape(bp_strip, size(img))
 
 using PyPlot
-pygui(true)
 
 ax00 = plt.subplot2grid((2,3), (0,0))
 ax01 = plt.subplot2grid((2,3), (0,1))
