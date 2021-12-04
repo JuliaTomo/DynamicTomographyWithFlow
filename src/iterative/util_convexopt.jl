@@ -20,6 +20,29 @@ export LinOp, compute_opnorm, proj_l1!, grad!, div!, prox_nuclear!
 # export D
 
 "Compute opeartor norm based on the Power method"
+function compute_opnorm(A::AbstractArray{T, 2}, niter=3) where {T<:Complex}
+    lamb = 0
+    x = rand(size(A,2))
+    x_next = similar(x)
+    Ax = zeros(size(A, 1))
+    At = A'
+
+    for i=1:niter
+        x_next = A'*A*x # is very slow (WHY?) Todo
+        #mul!(x_next, At, Ax)
+        lamb_prev = lamb
+        lamb = sqrt(sum(x_next.^2))
+
+        if (abs(lamb_prev-lamb) < 1e-9)
+            println("break at iteration: ", i)
+            break
+        end
+        x = x_next / lamb
+    end
+    #eig_max = x'*A'*A*x / x*x
+    return sqrt(lamb)
+end
+
 function compute_opnorm(A, niter=3)
     lamb = 0
     x = rand(size(A,2))
@@ -28,7 +51,7 @@ function compute_opnorm(A, niter=3)
     At = A'
 
     for i=1:niter
-        mul!(Ax, A, x) # A'*A*x is very slow (WHY?) Todo
+        mul!(Ax, A, x)
         mul!(x_next, At, Ax)
         lamb_prev = lamb
         lamb = sqrt(sum(x_next.^2))
@@ -49,11 +72,11 @@ function grad(u::Array{T, 2}) where {T<:AbstractFloat}
     uy = circshift(u, [-1, 0]) - u
     ux[:, end] .= 0.0
     uy[end, :] .= 0.0
-    
+
     return cat(ux, uy, dims=3)
 end
 
-function grad!(du::Array{T, 3}, u::Array{T, 2}) where {T<:AbstractFloat}
+function grad!(du::AbstractArray{T, 3}, u::AbstractArray{T, 2}) where {T<:AbstractFloat}
     du1, du2 = view(du, :, :, 1), view(du, :, :, 2)
     du1 .= circshift!(du1, u, [0, -1]) .- u
     du2 .= circshift!(du2, u, [-1, 0]) .- u
@@ -85,7 +108,7 @@ function div!(divp::Array{T, 4}, p::Array{T, 4}) where {T<:AbstractFloat}
     p1_x .= p1 .- circshift!(p3_z, p1, [0, 1, 0])
     p1_x[:, end, :] .= -p1[:, end-1, :]
     p1_x[:,   1, :] .=  p1[:, 1, :]
-    
+
     p2_y .= p2 .- circshift!(p3_z, p2, [1, 0, 0])
     p2_y[end, :, :] .= -p2[end-1, :, :]
     p2_y[1,   :, :] .=  p2[1, :, :]
@@ -101,20 +124,20 @@ function div!(divp::Array{T, 4}, p::Array{T, 4}) where {T<:AbstractFloat}
     return p1_x
 end
 
-function div!(divp::Array{T, 3}, p::Array{T, 3}) where {T<:AbstractFloat}
+function div!(divp::AbstractArray{T, 3}, p::AbstractArray{T, 3}) where {T<:AbstractFloat}
     p1, p2 = view(p,:,:,1), view(p,:,:,2)
     p1_x, p2_y = view(divp,:,:,1), view(divp,:,:,2)
-    
+
     # p2_y is temp variable to save memory
     p1_x         .=  p1 - circshift!(p2_y, p1, [0, 1])
     p1_x[:, end] .= -p1[:, end-1]
     p1_x[:,   1] .=  p1[:, 1]
-    
+
     circshift!(p2_y, p2, [1, 0])
     p2_y         .= p2 - p2_y
     p2_y[end, :] .= -p2[end-1, :]
     p2_y[1,   :] .=  p2[1, :]
-    
+
     p1_x .+= p2_y
     return p1_x
 end
@@ -124,17 +147,17 @@ function div2d(p1, p2)
     p1_x         =  p1 - circshift(p1, [0, 1])
     p1_x[:, end] .= -p1[:, end-1]
     p1_x[:,   1] .=  p1[:, 1]
-    
+
     p2_y = p2 - circshift(p2, [1, 0])
     p2_y[end, :] .= -p2[end-1, :]
     p2_y[1,   :] .=  p2[1, :]
-    
+
     div_p = p1_x + p2_y
     return div_p
 end
 
 "Project p[H,W,2] to dual isonorm"
-function proj_dual_iso!(p::Array{T, 3}, temp, weight) where {T<:AbstractFloat}
+function proj_dual_iso!(p::AbstractArray{T, 3}, temp, weight) where {T<:AbstractFloat}
     "TODO: Avoid copying"
     p1, p2 = view(p,:,:,1), view(p,:,:,2)
     temp .= 1 ./ max.(1.0, sqrt.( p1 .^2 + p2 .^ 2 ) ./ (weight+1e-8) )
@@ -143,13 +166,18 @@ function proj_dual_iso!(p::Array{T, 3}, temp, weight) where {T<:AbstractFloat}
 end
 
 "Project p[H,W,Z,3] to dual isonorm"
-function proj_dual_iso!(p::Array{T, 4}, temp, weight) where {T<:AbstractFloat}
+function proj_dual_iso!(p::AbstractArray{T, 4}, temp, weight) where {T<:AbstractFloat}
     "TODO: Avoid copying"
     p1, p2, p3 = view(p,:,:,:,1), view(p,:,:,:,2), view(p,:,:,:,3)
     temp .= 1 ./ max.(1.0, sqrt.( p1 .^2 + p2 .^2 + p3 .^2 )./ (weight+1e-8))
     p1 .*= temp
     p2 .*= temp
     p3 .*= temp
+end
+
+function proj_dual_iso!(x::AbstractArray{T, 2}, weight::T) where {T<:AbstractFloat}
+    x .= x-sign.(x) .* max.(abs.(x) .- weight, 0.0)
+    return x
 end
 
 "Project l1 norm (soft thresholding)"

@@ -1,106 +1,81 @@
 using SparseArrays
+using PyCall
+using LinearAlgebra
+using TomoForward
+using XfromProjections
+include("../../phantoms/sperm_phantom.jl")
 
-function sub2ind(array_shape, rows, cols)
-    out = (cols.-1).*array_shape[1] .+ rows
-    return convert.(Int64, out)
-end
+# H,W = 609, 609
+# detmin, detmax = -38.0, 38.0
+# function radon_operator(height, width, detcount, angles)
+#     proj_geom = ProjGeom(0.5, detcount, angles)
+#     A = fp_op_parallel2d_line(proj_geom, height, width, detmin,detmax, detmin,detmax)
+#     return A
+# end
+# grid = collect(detmin:0.1:detmax)
+# r(s) = 1.0
+#
+# images, tracks = get_sperm_phantom(301,r,grid)
+# frames = images[:,:,collect(271:274)]
+# @info size(frames)
+#
+# w_tv = 0.1
+# w_flow  = 0.5
+# c=1.1
+#
+#
+# detcount = Int(floor(H*1.4))
+#
+# cwd = @__DIR__
+# path = normpath(joinpath(@__DIR__, "result"))
+# !isdir(path) && mkdir(path)
+# cd(path)
+#
+# #4 angles evenly spaced between 0 and pi
+# #angles = collect(range(0.0,π,length=5))[1:end-1]#angles = rand(0.0:0.001:π, 4)#collect(range(π/2,3*π/2,length=ang_nr+1))[1:end-1]
+# #@info angles
+# nangles = 4
+# a = range(0.0,4*pi+pi/4, length=nangles*size(frames)[3])#rand(0.0:0.001:π, nangles*size(frames)[3])
+# angles = map(t -> a[(t-1)*nangles+1:(t-1)*nangles+nangles], 1:size(frames)[3])
+# @info angles
+# #match size of input image (generating data)
+# As = map(t -> radon_operator(size(frames[:,:,1],1),size(frames[:,:,1],2),detcount, angles[t]),1:size(frames)[3])
+# bs = zeros(size(As[1])[1],size(frames)[3])
+# map(t -> bs[:,t] = As[t]*vec(frames[:,:,t]), 1:size(frames)[3])
+#
+# u0s = zeros(H,W,size(frames)[3])
+# mask = ones(size(u0s)...)
+#
+# As  = map(t -> radon_operator(H,W, detcount, angles[t]),1:size(u0s)[3])
+#
+# @info "Reconstruction using tv regularization frame by frame"
+# niter=450
+# us_tv = zeros(H,W,size(frames)[3])
+# for t = 1:size(frames)[3]
+#    A = As[t]
+#    p = bs[:,t]
+#    u0 = u0s[:,:,t]
+#    us_tv[:,:,t] .= recon2d_tv_primaldual!(us_tv[:,:,t], A, p, niter, w_tv, c)
+# end
 
-function compute_warping_operator(flow)
-    # ref: https://github.com/HendrikMuenster/flexBox/blob/79abc7285703911cca2653434cca5bcefc79c722/operators/generateMatrix/warpingOperator.m
-    """
-    u: gray image
-    v: flow [H, W, 2]
-    """
-    H, W, dims = size(flow)
-    shape = (H,W)
-    XX, YY = repeat(collect(1:W)', H, 1), repeat(collect(1:H), 1, W)
-    targetPoint2Mat = XX + flow[:,:,1]
-    targetPoint1Mat = YY + flow[:,:,2]
-    x1 = floor.(targetPoint1Mat).-1
-    x2 = x1 .+ 1
-    x3 = x1 .+ 2
-    x4 = x1 .+ 3
-    y1 = floor.(targetPoint2Mat).-1
-    y2 = y1 .+ 1
-    y3 = y1 .+ 2
-    y4 = y1 .+ 3
-    v2 = targetPoint1Mat .- x2
-    v1 = targetPoint2Mat .- y2
-    indicator = ones(H,W)
-    indicator = (x1 .> 0).*indicator
-    indicator = (x4 .<= W).*indicator
-    indicator = (y1 .> 0).*indicator
-    indicator = (y4 .<= H).*indicator
-    indicator = indicator .> 0
-    v1 = v1[indicator]
-    v2 = v2[indicator]
-    idxList = sub2ind(shape, YY, XX)
-    idxList_ = collect(Iterators.flatten(idxList))
-    #find the indices
-    list_J  = vcat(
-        idxList_[sub2ind(shape, x2[indicator], y2[indicator])],
-        idxList_[sub2ind(shape, x3[indicator], y2[indicator])],
-        idxList_[sub2ind(shape, x2[indicator], y3[indicator])],
-        idxList_[sub2ind(shape, x3[indicator], y3[indicator])])
-    # list_J  = vcat(
-    #     idxList_[sub2ind(shape, x1[indicator], y1[indicator])],
-    #     idxList_[sub2ind(shape, x2[indicator], y1[indicator])],
-    #     idxList_[sub2ind(shape, x3[indicator], y1[indicator])],
-    #     idxList_[sub2ind(shape, x4[indicator], y1[indicator])],
-    #     idxList_[sub2ind(shape, x1[indicator], y2[indicator])],
-    #     idxList_[sub2ind(shape, x2[indicator], y2[indicator])],
-    #     idxList_[sub2ind(shape, x3[indicator], y2[indicator])],
-    #     idxList_[sub2ind(shape, x4[indicator], y2[indicator])],
-    #     idxList_[sub2ind(shape, x1[indicator], y3[indicator])],
-    #     idxList_[sub2ind(shape, x2[indicator], y3[indicator])],
-    #     idxList_[sub2ind(shape, x3[indicator], y3[indicator])],
-    #     idxList_[sub2ind(shape, x4[indicator], y3[indicator])],
-    #     idxList_[sub2ind(shape, x1[indicator], y4[indicator])],
-    #     idxList_[sub2ind(shape, x2[indicator], y4[indicator])],
-    #     idxList_[sub2ind(shape, x3[indicator], y4[indicator])],
-    #     idxList_[sub2ind(shape, x4[indicator], y4[indicator])])
-    list_J = collect(Iterators.flatten(list_J))
-    list_val  = ( (1 .-v1) .* (1 .-v2))
-    list_val = vcat(list_val,(v2 .* (1 .-v1)))
-    list_val = vcat(list_val,(v1 .* (1 .-v2)))
-    list_val = vcat(list_val,(v1 .* v2))
-    # list_val =vcat(
-    #     (v1.*v2.*(v1 .- 1).^2 .*(v2 .- 1).^2)/4,
-    #     -1 .*(v1.*(v1 .- 1).^2 .*(3 .*v2.^3 .- 5 .*v2.^2 .+ 2))./4,
-    #     -1 .*(v1.*v2.*(v1 .- 1).^2 .*(- 3 .*v2.^2 + 4 .*v2 .+ 1))./4,
-    #     -1 .*(v1.*v2.^2 .*(v1 .- 1).^2 .*(v2 .- 1))./4,
-    #     -1 .*(v2.*(v2 .- 1).^2 .*(3 .*v1.^3 .- 5 .*v1.^2 .+ 2))./4,
-    #     ((3 .*v1.^3 .- 5 .*v1.^2 .+ 2).*(3 .*v2.^3 .- 5 .*v2.^2 .+ 2))./4,
-    #     (v2.*(- 3 .*v2.^2 .+ 4 .*v2 .+ 1).*(3 .*v1.^3 .- 5 .*v1.^2 .+ 2))./4,
-    #     (v2.^2 .*(v2 .- 1).*(3 .*v1.^3 .- 5 .*v1.^2 .+ 2))./4,
-    #     -1 .*(v1.*v2.*(v2 .- 1).^2 .*(- 3 .*v1.^2 .+ 4 .*v1 .+ 1))./4,
-    #     (v1.*(- 3 .*v1.^2 .+ 4 .*v1 .+ 1).*(3 .*v2.^3 .- 5 .*v2.^2 .+ 2))./4,
-    #     (v1.*v2.*(- 3 .*v1.^2 .+ 4 .*v1 .+ 1).*(- 3 .*v2.^2 .+ 4 .*v2 .+ 1))./4,
-    #     (v1.*v2.^2 .*(v2 .- 1).*(- 3 .*v1.^2 .+ 4 .*v1 .+ 1))./4,
-    #     -1 .*(v1.^2 .*v2.*(v1 .- 1).*(v2 .- 1).^2)./4,
-    #     (v1.^2 .*(v1 .- 1).*(3 .*v2.^3 .- 5 .*v2.^2 .+ 2))./4,
-    #     (v1.^2 .*v2.*(v1 .- 1).*(- 3 .*v2.^2 .+ 4 .*v2 .+ 1))./4,
-    #     (v1.^2 .*v2.^2 .*(v1 .- 1).*(v2 .- 1))./4
-    # )
-    list_val = collect(Iterators.flatten(list_val))
-    list_I = idxList[indicator]
-    #list_I =collect(Iterators.flatten(repeat(list_I,1,16)))
-    list_I =collect(Iterators.flatten(repeat(list_I,1,4)))
-    # list_I_py, list_J_py, list_val_py = py"py_warping_operator"(flow)
-    # list_I_py = list_I_py.+1
-    # list_J_py = list_J_py.+1
-    # W_mat_py = sparse(list_I_py, list_J_py, list_val_py, H*W, H*W)
-    W_mat = dropzeros!(sparse(list_I, list_J, list_val, H*W, H*W))
-    return W_mat
-end
+H, W = size(us_tv[:,:,1])
 
-img2 = zeros(128,128)
-H, W = size(img2)
-img2[30:60,40:50] .= 255.0
+us = zeros(H,W,3)
+us[:,:,1] = us_tv[:,:,1]
+us[:,:,2] = us_tv[:,:,2]
+us[:,:,3] = zeros(H,W)
 
-flow = zeros(H, W, 2)
-flow[30:60,40:50, 1] .= -1.0
 
-Wop = compute_warping_operator(flow)
-    img1_ = Wop * vec(img2)
-img1 = reshape(img1_, H, W)
+vs = get_flows(us, 0.012)
+v = vs[:,:,:,1]
+
+Woptical = compute_warping_operator(v)
+@views mul!(view(us[:,:,3], :), Woptical, vec(us[:,:,1]))
+
+p1 = plot(Gray.(us[:,:,1]), aspect_ratio=:equal, framestyle=:none, title="img1")
+p2 = plot(Gray.(us[:,:,2]), aspect_ratio=:equal, framestyle=:none, title="img2")
+p3 = plot(Gray.(us[:,:,3]), aspect_ratio=:equal, framestyle=:none, title="img1warped")
+p4 = plot(Gray.(us[:,:,3]-us[:,:,2]), aspect_ratio=:equal, framestyle=:none, title="img1warped-img2")
+
+l = @layout [a b c d]
+plot(p1, p2, p3, p4, layout = l, size=(2000,600), linewidth=5)

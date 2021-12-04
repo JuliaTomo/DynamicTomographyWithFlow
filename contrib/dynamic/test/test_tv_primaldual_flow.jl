@@ -3,11 +3,10 @@ using Images
 using Plots
 using XfromProjections
 using StaticArrays
-using PyCall
 using Logging
+using ImageTransformations
 include("../../phantoms/simple_phantoms.jl")
-include("../tv_primaldual_flow.jl")
-include("../optical_flow.jl")
+
 
 replace_nan(v) = map(x -> isnan(x) ? zero(x) : x, v)
 
@@ -43,19 +42,21 @@ map(t -> bs[:,t] = As[t]*vec(frames[:,:,t]), 1:size(frames)[3])
 niter=500
 u0s = zeros(H,W,size(frames)[3])
 
-w_tv = 0.3
-w_flow  = 0.05
+mask = disc_phantom(u0s[:,:,1], 25.5, 25.5, 23)
+mask = repeat(mask, outer=[1,1,20])
+
+w_tv = 0.1
+w_flow  = 0.5
 
 @info "Reconstructing using joint motion estimation and reconstruction"
-c=10.0
-us_flow = recon2d_tv_primaldual_flow(As, bs, u0s, 20, niter, w_tv, w_flow, c)
+c=1.1
+us_flow = recon2d_tv_primaldual_flow(As, bs, u0s, 20, niter, w_tv, w_flow, c, mask, 0.012)
 
 @info "Reconstruction using tv regularization frame by frame"
 us_tv = zeros(H,W,size(frames)[3])
 for t = 1:size(frames)[3]
     A = As[t]
     p = bs[:,t]
-    u0 = u0s[:,:,t]
     us_tv[:,:,t] .= recon2d_tv_primaldual!(us_tv[:,:,t], A, p, niter, w_tv, c)
 end
 

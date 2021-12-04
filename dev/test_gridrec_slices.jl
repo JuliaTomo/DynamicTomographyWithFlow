@@ -1,5 +1,5 @@
 # make a synthetic projection
-incldue("../src/analytic/gridrec.jl")
+include("../src/analytic/gridrec.jl")
 using TomoForward
 
 img = zeros(128, 128, 2)
@@ -13,10 +13,7 @@ detcount = 196
 angles = Array(LinRange(0,pi,nangles+1)[1:nangles])
 proj_geom = ProjGeom(1.0, detcount, angles)
 
-isdefined_A = @isdefined A
-if isdefined_A == false
-    A = fp_op_parallel2d_strip(proj_geom, size(img, 1), size(img, 2))
-end
+A = fp_op_parallel2d_strip(proj_geom, size(img, 1), size(img, 2))
 
 p = zeros(nangles, nslice, detcount)
 for i=1:nslice
@@ -27,4 +24,4 @@ end
 
 using PyPlot
 imshow(rec_img[:,:,1])
-# imshow(img[:,:,1])
+#imshow(img[:,:,1])

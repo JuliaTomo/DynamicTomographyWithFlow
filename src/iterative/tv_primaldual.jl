@@ -3,9 +3,9 @@ using .util_convexopt
 function _recon2d_tv_primaldual!(u, A, b0, niter, w_tv, sigmas, tau)
     At = sparse(A')
     H, W = size(u)
-    
+
     b = vec(b0)
-    
+
     ubar = deepcopy(u)
     u_prev = similar(u)
 
@@ -16,7 +16,7 @@ function _recon2d_tv_primaldual!(u, A, b0, niter, w_tv, sigmas, tau)
 
     du = similar(p2)
     divp2 = similar(p2)
-    
+
     data1 = similar(b)
     u_temp = similar(u)
 
@@ -34,9 +34,9 @@ function _recon2d_tv_primaldual!(u, A, b0, niter, w_tv, sigmas, tau)
         p2 .+= sigmas[2] .* du
         util_convexopt.proj_dual_iso!(p2, u_temp, w_tv)
         # util_convexopt.proj_dual_l1!(p2, w_tv) #anisotropic TV
-        
+
         p_adjoint .-= div!(divp2, p2) # p1_adjoint + p2_adjoint
-        
+
         # primal update
         u .= max.(u .- tau .* p_adjoint, 0.0) # positivity constraint
 
@@ -69,7 +69,7 @@ function recon2d_tv_primaldual!(u::Array{T, 2}, A, b, niter::Int, w_tv::T, c=10.
     @time op_A_norm = util_convexopt.compute_opnorm(A)
     println("@ opnorm of forward projection operator: $op_A_norm")
     ops_norm = [op_A_norm, sqrt(8)]
-    
+
     sigmas = zeros(length(ops_norm))
     for i=1:length(ops_norm)
         sigmas[i] = 1.0 / (ops_norm[i] * c)
@@ -77,22 +77,22 @@ function recon2d_tv_primaldual!(u::Array{T, 2}, A, b, niter::Int, w_tv::T, c=10.
 
     tau = c / sum(ops_norm)
     println("@ step sizes sigmas: ", sigmas, ", tau: $tau")
-    
+
     return _recon2d_tv_primaldual!(u, A, b, niter, w_tv, sigmas, tau)
 end
 
 
 function _recon2d_stack_tv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter::Int, w_tv::T, sigmas, tau::T) where {T<:AbstractFloat}
     H, W, nslice = size(u)
-    
+
     At = sparse(A') # this significatnly improves the performance
-    
+
     ubar = deepcopy(u)
     u_prev = similar(u)
-    
+
     b_axWxH = permutedims(b0, [3, 2, 1]) # PermutedDimsArray(A, (3,1,2));
     b = reshape(b_axWxH, :, nslice)
-    
+
     halfslice = Int(floor(nslice/2))
 
     p1 = zeros(size(b))
@@ -107,12 +107,12 @@ function _recon2d_stack_tv_primaldual!(u::Array{T, 3}, A, b0::Array{T, 3}, niter
 
     for it=1:niter
         u_prev .= u
-        
+
         # dual update
         Threads.@threads  for slice=1:nslice
             ubar_slice = view(ubar, :, :, slice)
             p_adjoint_slice = vec(view(p_adjoint, :, :, slice))
-            
+
             # for l2 norm
             @views temp_residual[:, slice] .= mul!(temp_residual[:, slice], A, vec(ubar_slice)) .- b[:, slice]
             @views p1[:, slice] .= (p1[:, slice] .+ sigmas[1] .* temp_residual[:, slice]) ./ (sigmas[1] + 1.0)
@@ -163,7 +163,7 @@ function recon2d_stack_tv_primaldual!(u::Array{T, 3}, A, b::Array{T, 3}, niter::
     println("@ opnorm of forward projection operator: $op_A_norm")
     ops_norm = [op_A_norm, sqrt(8)]
     println("TODO! in 3d, sqrt(8) would be wrong")
-    
+
     sigmas = zeros(length(ops_norm))
     for i=1:length(ops_norm)
         sigmas[i] = 1.0 / (ops_norm[i] * c)
@@ -173,6 +173,6 @@ function recon2d_stack_tv_primaldual!(u::Array{T, 3}, A, b::Array{T, 3}, niter::
     println("@ step sizes sigmas: ", sigmas, ", tau: $tau")
 
 
-    
+
     residual = _recon2d_stack_tv_primaldual!(u, A, b, niter, w_tv, sigmas, tau)
 end
