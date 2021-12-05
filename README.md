@@ -1,4 +1,4 @@
-# Welcome to XfromProjections.jl
+# Welcome to DynamicTomographyWithFlow.jl
 
 XfromProjections provides image reconstruction from tomographic projection data. XfromProjections supports 2D image reconstructions for paralleal and fan beam and supports a stack of 2D images (3D images) slice by slice for paralleal beam. XfromProjections takes advantage of multi-threading. (To use multithreading, you can run julia with the option `julia -t2` e.g. if you want to use 2 threads.)
 
